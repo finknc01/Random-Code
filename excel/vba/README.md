@@ -16,8 +16,9 @@ These modules work with the existing full Excel formula in [server-rack-lookup-f
 - **Server Inventory** contains the Excel Table `tblInventory` with headers: `Rack ID`, `U Position`, `Hostname`, `Serial Number`, `Asset Tag`.
 - **Rack Lookup** uses search inputs `C3` (rack), `C4` (U), `C6` (hostname), `C8` (serial), and `C10` (asset tag).
 - The existing dynamic formula remains in **Rack Lookup!E3** and outputs into columns E through I; the VBA does not overwrite it.
-- The graphical rack elevation is drawn using formatted worksheet cells in **Rack Lookup!K2:M66**, which should be reserved for this feature.
-- **Rack Labels** is unchanged; the Brady printer can make the barcodes.
+- The graphical rack elevation is drawn using formatted worksheet cells in **Rack Lookup!K2:M126** (up to 120U); reserve this area for the feature.
+- **Rack Labels** contains the rack registry as an Excel Table named **`tblRacks`** with headers **`Rack ID`**, **`Barcode`**, and **`Rack Height`**. You can leave Barcode empty when the Brady printer creates barcodes itself. One table row represents **one rack**, not one server. Rack Height may be blank to use 42U.
+- Excel Table cells cannot contain a multi-cell spill from `SORT(UNIQUE(...))`. Maintain each distinct Rack ID as a table row, rather than putting the spilling formula inside `tblRacks`. New server records will not automatically create registry rows; add a row when registering a new rack.
 
 ## Graphical rack behavior
 
@@ -30,7 +31,10 @@ These modules work with the existing full Excel formula in [server-rack-lookup-f
 
 ## Unit height and rack size
 
-- The initial rack height is **42U**, controlled by the `RACK_UNITS = 42` constant near the top of `modRackElevation`. Change it to `48` for a 48U rack.
+- The elevation reads **`tblRacks[Rack Height]`** on **Rack Labels**, matching the Rack ID.
+- **42U is the default** when the rack height is blank, the rack has no registry entry, or the rack table is unavailable. A message appears in the visualization for such cases.
+- Height must be a whole number from **1 to 120**. Invalid or nonnumeric heights show a warning and fall back to 42U; duplicate Rack IDs also show a warning.
+- A 24U rack displays U24 through U1; a 48U rack displays U48 through U1. No code changes are needed when switching between registered racks.
 - The `U Position` field is treated as the **topmost** U occupied by the device. U positions may be numbers (e.g. `40`) or text with a `U` prefix (e.g. `U40`), but a consistent format is recommended.
 - The code optionally recognizes an additional **`Height (U)`** column in `tblInventory`. If it is missing or empty, devices are shown as 1U. A 2U server at U40 occupies U40 and U39.
 - **For accurate rack-space use, add and populate `Height (U)`** for multi-U equipment. Without it, the display is a device-position map, not a reliable free-U calculation.
@@ -38,7 +42,7 @@ These modules work with the existing full Excel formula in [server-rack-lookup-f
 
 ## Refreshing
 
-Changing any of the five search inputs triggers `modRackElevation.RenderRackElevation` automatically. Editing **Server Inventory** alone does not automatically redraw the elevation; run `RenderRackElevation` from **Alt+F8** or make a Refresh button if you want an immediate update.
+Changing any of the five search inputs triggers `modRackElevation.RenderRackElevation` automatically. Editing **Server Inventory** or changing **Rack Height on Rack Labels** alone does not automatically redraw the elevation; run `RenderRackElevation` from **Alt+F8**, change the search input, or make a Refresh button if you want an immediate update.
 
 The optional `ClearRackSearch` macro from `modRackSearch` now also clears the visual and reselects C3. Assign it to a **Developer > Insert > Button (Form Control)** on Rack Lookup if desired.
 
