@@ -1,0 +1,8 @@
+' Paste this into the code window for the Rack Lookup worksheet.
+' In the VBA editor (Alt+F11), double-click SheetN (Rack Lookup).
+' Do not put this event in a standard module.
+Option Explicit
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    modRackSearch.HandleSearchChange Me, Target
+End Sub
