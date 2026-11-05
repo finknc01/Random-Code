@@ -47,6 +47,7 @@ Public Sub ClearRackSearch()
 
     ws.Activate
     ws.Range("C3").Select
+    modRackElevation.RenderRackElevation
     Exit Sub
 
 HandleError:
