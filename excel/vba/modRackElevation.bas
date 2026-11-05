@@ -1,8 +1,9 @@
 Option Explicit
 
-' Rack elevation on Rack Lookup!K2:M66.
-' Default 42U; change to 48 if your racks are 48U.
-Private Const RACK_UNITS As Long = 42
+' Rack elevation on Rack Lookup!K2:M126 (up to 120U).
+' Rack-specific height comes from tblRacks on the Rack Labels worksheet.
+Private Const DEFAULT_RACK_UNITS As Long = 42
+Private Const MAX_RACK_UNITS As Long = 120
 Private Const FIRST_UNIT_ROW As Long = 7
 
 Public Sub RenderRackElevation()
@@ -19,6 +20,7 @@ Public Sub RenderRackElevation()
     Dim hostName As String, serialNo As String, savedEvents As Boolean
     Dim savedScreen As Boolean
     Dim rowCells As Range
+    Dim rackUnits As Long, heightNote As String
 
     savedEvents = Application.EnableEvents
     savedScreen = Application.ScreenUpdating
@@ -37,7 +39,7 @@ Public Sub RenderRackElevation()
     heightCol = OptionalColumn(tbl, "Height (U)")
 
     ' Only use this reserved section of the Rack Lookup worksheet.
-    With ws.Range("K2:M66")
+    With ws.Range("K2:M" & (FIRST_UNIT_ROW + MAX_RACK_UNITS - 1))
         .ClearContents
         .Interior.Color = RGB(255, 255, 255)
         .Font.Color = RGB(40, 48, 58)
@@ -106,11 +108,13 @@ Public Sub RenderRackElevation()
         GoTo CleanExit
     End If
 
-    ReDim label(1 To RACK_UNITS)
-    ReDim serials(1 To RACK_UNITS)
-    ReDim used(1 To RACK_UNITS)
-    ReDim highlighted(1 To RACK_UNITS)
-    ReDim conflicts(1 To RACK_UNITS)
+    rackUnits = GetRackUnits(selectedRack, heightNote)
+
+    ReDim label(1 To rackUnits)
+    ReDim serials(1 To rackUnits)
+    ReDim used(1 To rackUnits)
+    ReDim highlighted(1 To rackUnits)
+    ReDim conflicts(1 To rackUnits)
 
     For Each entry In tbl.ListRows
         If StrComp(RowText(entry, rackCol), selectedRack, vbTextCompare) = 0 Then
@@ -137,7 +141,7 @@ Public Sub RenderRackElevation()
             If isMatch Then hitCount = hitCount + 1
 
             ' Invalid/out-of-range U values must not be drawn inaccurately.
-            If topU < 1 Or topU > RACK_UNITS Or bottomU < 1 _
+            If topU < 1 Or topU > rackUnits Or bottomU < 1 _
                Or unitHeight < 1 Then
                 skipped = skipped + 1
             Else
@@ -164,7 +168,8 @@ Public Sub RenderRackElevation()
     Next entry
 
     ws.Range("K3").Value = selectedRack
-    ws.Range("L3").Value = deviceCount & " inventory records"
+    ws.Range("L3").Value = rackUnits & "U rack | " & deviceCount & " records"
+    If Len(heightNote) > 0 Then ws.Range("K4").Value = heightNote
     If skipped > 0 Then
         ws.Range("M3").Value = skipped & " invalid/out-of-range U"
     ElseIf (searchCol > 0 Or Len(uSearch) > 0) And hitCount = 0 Then
@@ -180,8 +185,8 @@ Public Sub RenderRackElevation()
         .Font.Color = RGB(255, 255, 255)
     End With
 
-    For u = RACK_UNITS To 1 Step -1
-        outputRow = FIRST_UNIT_ROW + RACK_UNITS - u
+    For u = rackUnits To 1 Step -1
+        outputRow = FIRST_UNIT_ROW + rackUnits - u
         Set rowCells = ws.Range("K" & outputRow & ":M" & outputRow)
         ws.Cells(outputRow, "K").Value = "U" & u
         If used(u) Then
@@ -212,6 +217,66 @@ HandleError:
     MsgBox "Rack elevation error: " & Err.Description, vbExclamation
     Resume CleanExit
 End Sub
+
+' Rack Labels is the rack-level registry: one row per rack.
+' Blank/unlisted heights default to 42U. Invalid heights are flagged.
+' The optional Height (U) column on Server Inventory is DIFFERENT:
+' it describes how many U a single device occupies.
+Private Function GetRackUnits(ByVal rackId As String, _
+                              ByRef note As String) As Long
+    Dim racks As ListObject
+    Dim entry As ListRow
+    Dim idCol As Long, heightCol As Long
+    Dim rawHeight As String
+    Dim heightValue As Double
+    Dim found As Boolean
+
+    GetRackUnits = DEFAULT_RACK_UNITS
+
+    On Error Resume Next
+    Set racks = ThisWorkbook.Worksheets("Rack Labels").ListObjects("tblRacks")
+    On Error GoTo 0
+
+    If racks Is Nothing Then
+        note = "tblRacks not found - defaulting to 42U"
+        Exit Function
+    End If
+
+    idCol = OptionalColumn(racks, "Rack ID")
+    heightCol = OptionalColumn(racks, "Rack Height")
+    If idCol = 0 Or heightCol = 0 Then
+        note = "Check tblRacks headers (Rack ID, Rack Height)"
+        Exit Function
+    End If
+
+    For Each entry In racks.ListRows
+        If StrComp(RowText(entry, idCol), rackId, vbTextCompare) = 0 Then
+            If found Then
+                note = "Duplicate Rack ID in tblRacks; using first"
+                Exit Function
+            End If
+
+            found = True
+            rawHeight = RowText(entry, heightCol)
+
+            If Len(rawHeight) = 0 Then
+                note = "Rack Height blank - defaulting to 42U"
+            ElseIf Not IsNumeric(rawHeight) Then
+                note = "Non-numeric Rack Height - defaulting to 42U"
+            Else
+                heightValue = CDbl(rawHeight)
+                If heightValue < 1 Or heightValue > MAX_RACK_UNITS _
+                   Or heightValue <> Fix(heightValue) Then
+                    note = "Invalid Rack Height - defaulting to 42U"
+                Else
+                    GetRackUnits = CLng(heightValue)
+                End If
+            End If
+        End If
+    Next entry
+
+    If Not found Then note = "Rack missing from tblRacks - defaulting to 42U"
+End Function
 
 Private Function OptionalColumn(ByVal tbl As ListObject, _
                                 ByVal heading As String) As Long
