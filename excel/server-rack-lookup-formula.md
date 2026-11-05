@@ -64,9 +64,3 @@ Original full `LET` + `CHOOSE` + `FILTER` formula for the **Rack Lookup** worksh
 - No search input: blank output; U Position without Rack ID: prompt for Rack ID; no matches: `No matching servers`.
 - Missing hostname, serial number, or asset tag **in inventory data** is displayed as a blank rather than zero.
 - Because the VBA event enforces exclusive search methods, this formula does not independently flag simultaneous searches. Without that event, it prioritizes hostname, then serial number, then asset tag, then rack.
-
-## Verification / troubleshooting
-
-This version has been checked for balanced delimiters and function argument counts (including all `IF`, `CHOOSE`, `FILTER`, and `LET` calls). It has **not** been run against the user's Excel workbook, so runtime results must still be verified in Excel.
-
-If hand-typing, avoid clicking worksheet cells while editing, as Excel may insert unintended cell references. Verify the exact table name and header spellings. `E3:I` must not be occupied by other values, or Excel may display `#SPILL!`.
