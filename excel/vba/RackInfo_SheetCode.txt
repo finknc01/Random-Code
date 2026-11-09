@@ -1,0 +1,23 @@
+' Put this event in the Rack Info worksheet code module.
+' Responds to rack height and rack ID edits; it does not alter the rack registry.
+Option Explicit
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim t As ListObject
+    Dim ids As Range, heights As Range
+
+    On Error GoTo HandleError
+    Set t = Me.ListObjects("tblRacks")
+    If t.DataBodyRange Is Nothing Then Exit Sub
+
+    Set ids = t.ListColumns("Rack ID").DataBodyRange
+    Set heights = t.ListColumns("Rack Height").DataBodyRange
+
+    If Intersect(Target, Union(ids, heights)) Is Nothing Then Exit Sub
+
+    modRackElevation.RenderRackElevation
+    Exit Sub
+
+HandleError:
+    MsgBox "Rack Info refresh error: " & Err.Description, vbExclamation
+End Sub
