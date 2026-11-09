@@ -1,7 +1,7 @@
 Option Explicit
 
 ' Rack elevation on Rack Lookup!K2:M126 (up to 120U).
-' Rack-specific height comes from tblRacks on the Rack Labels worksheet.
+' Rack-specific height comes from tblRacks on the Rack Info worksheet.
 Private Const DEFAULT_RACK_UNITS As Long = 42
 Private Const MAX_RACK_UNITS As Long = 120
 Private Const FIRST_UNIT_ROW As Long = 7
@@ -218,7 +218,7 @@ HandleError:
     Resume CleanExit
 End Sub
 
-' Rack Labels is the rack-level registry: one row per rack.
+' Rack Info is the rack-level registry: one row per rack.
 ' Blank/unlisted heights default to 42U. Invalid heights are flagged.
 ' The optional Height (U) column on Server Inventory is DIFFERENT:
 ' it describes how many U a single device occupies.
@@ -234,7 +234,7 @@ Private Function GetRackUnits(ByVal rackId As String, _
     GetRackUnits = DEFAULT_RACK_UNITS
 
     On Error Resume Next
-    Set racks = ThisWorkbook.Worksheets("Rack Labels").ListObjects("tblRacks")
+    Set racks = ThisWorkbook.Worksheets("Rack Info").ListObjects("tblRacks")
     On Error GoTo 0
 
     If racks Is Nothing Then
