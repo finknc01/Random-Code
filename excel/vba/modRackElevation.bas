@@ -1,9 +1,9 @@
 Option Explicit
 
-' Rack elevation on Rack Lookup!K2:M126 (up to 120U).
+' Rack elevation has a maximum supported rack height of 42U.
 ' Rack-specific height comes from tblRacks on the Rack Info worksheet.
 Private Const DEFAULT_RACK_UNITS As Long = 42
-Private Const MAX_RACK_UNITS As Long = 120
+Private Const MAX_RACK_UNITS As Long = 42
 Private Const FIRST_UNIT_ROW As Long = 7
 
 Public Sub RenderRackElevation()
@@ -38,8 +38,9 @@ Public Sub RenderRackElevation()
     assetCol = tbl.ListColumns("Asset Tag").Index
     heightCol = OptionalColumn(tbl, "Height (U)")
 
-    ' Only use this reserved section of the Rack Lookup worksheet.
-    With ws.Range("K2:M" & (FIRST_UNIT_ROW + MAX_RACK_UNITS - 1))
+    ' Clear previous drawings, including legacy elevations taller than 42U.
+    ' Current 42U output ends at row 48; old drawings may extend to row 126.
+    With ws.Range("K2:M126")
         .ClearContents
         .Interior.Color = RGB(255, 255, 255)
         .Font.Color = RGB(40, 48, 58)
