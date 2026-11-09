@@ -1,27 +1,28 @@
-' Put this event in the Server Inventory worksheet code module.
-' This is not a standard module and must not replace the Rack Lookup event.
+' Replace only the Worksheet_Change code in Sheet (Server Inventory).
 Option Explicit
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    Dim t As ListObject
-    Dim rackIdCells As Range
+    Dim table As ListObject, rackIds As Range
 
     On Error GoTo HandleError
-    Set t = Me.ListObjects("tblInventory")
-    If t.DataBodyRange Is Nothing Then Exit Sub
-    If Intersect(Target, t.DataBodyRange) Is Nothing Then Exit Sub
+    If Not Application.EnableEvents Then Exit Sub
 
-    ' Only rescan the rack registry when a Rack ID has changed.
-    Set rackIdCells = t.ListColumns("Rack ID").DataBodyRange
-    If Not Intersect(Target, rackIdCells) Is Nothing Then
-        modRackRegistry.SyncRackRegistry
+    Set table = Me.ListObjects("tblInventory")
+    If Application.Intersect(Target, table.Range) Is Nothing Then Exit Sub
+
+    ' Handles edits and pasted ranges, including newly appended table rows.
+    If Not table.DataBodyRange Is Nothing Then
+        Set rackIds = table.ListColumns("Rack ID").DataBodyRange
+        If Not Application.Intersect(Target, rackIds) Is Nothing Then
+            modRackRegistry.SyncRackRegistry
+        End If
     End If
 
-    ' Other data edits (hostname, U, serial, equipment height, etc.)
-    ' also update the currently displayed rack.
+    ' Also redraw after edits to U, hostname, serial, asset, or equipment height.
     modRackElevation.RenderRackElevation
     Exit Sub
 
 HandleError:
-    MsgBox "Inventory refresh error: " & Err.Description, vbExclamation
+    MsgBox "Inventory event error (" & Err.Number & "): " & _
+           Err.Description, vbExclamation
 End Sub
