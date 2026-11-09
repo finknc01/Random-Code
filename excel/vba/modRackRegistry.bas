@@ -6,7 +6,7 @@ Option Explicit
 Public Sub SyncRackRegistry()
     Dim sourceTable As ListObject
     Dim rackTable As ListObject
-    Dim sourceIdCol As Long, rackIdCol As Long
+    Dim sourceIdCol As Long, rackIdCol As Long, rackHeightCol As Long
     Dim sourceRow As ListRow, rackRow As ListRow
     Dim registered As Collection, existing As Variant
     Dim rackId As String, alreadyKnown As Boolean
@@ -23,6 +23,7 @@ Public Sub SyncRackRegistry()
 
     sourceIdCol = sourceTable.ListColumns("Rack ID").Index
     rackIdCol = rackTable.ListColumns("Rack ID").Index
+    rackHeightCol = rackTable.ListColumns("Rack Height").Index
 
     ' A table accidentally covering the whole sheet can cause out-of-memory errors.
     If rackTable.ListRows.Count > 10000 Then
@@ -55,6 +56,7 @@ Public Sub SyncRackRegistry()
                 .NumberFormat = "@"
                 .Value2 = rackId
             End With
+            newRow.Range.Cells(1, rackHeightCol).ClearContents
             registered.Add rackId
             created = created + 1
         End If
