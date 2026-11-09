@@ -1,15 +1,16 @@
-' Paste this into the code window for the Rack Lookup worksheet.
-' In the VBA editor (Alt+F11), double-click SheetN (Rack Lookup).
-' Replace the earlier Worksheet_Change event; do not keep two copies.
+' Replace only the Worksheet_Change code in Sheet (Rack Lookup).
 Option Explicit
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    If Target.CountLarge <> 1 Then Exit Sub
-    If Intersect(Target, Me.Range("C3,C4,C6,C8,C10")) Is Nothing Then Exit Sub
+    On Error GoTo HandleError
+    If Not Application.EnableEvents Then Exit Sub
+    If Application.Intersect(Target, Me.Range("C3,C4,C6,C8,C10")) Is Nothing Then Exit Sub
 
-    ' First clear conflicting search inputs, preserving rack + U.
     modRackSearch.HandleSearchChange Me, Target
-
-    ' Then draw the full rack and highlight any matched server(s).
     modRackElevation.RenderRackElevation
+    Exit Sub
+
+HandleError:
+    MsgBox "Rack Lookup event error (" & Err.Number & "): " & _
+           Err.Description, vbExclamation
 End Sub
