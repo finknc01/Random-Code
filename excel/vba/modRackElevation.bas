@@ -280,9 +280,16 @@ End Function
 
 Private Function OptionalColumn(ByVal tbl As ListObject, _
                                 ByVal heading As String) As Long
-    On Error Resume Next
-    OptionalColumn = tbl.ListColumns(heading).Index
-    On Error GoTo 0
+    Dim col As ListColumn
+
+    ' Avoid raising an error when an optional column is absent.
+    ' A missing column returns zero.
+    For Each col In tbl.ListColumns
+        If StrComp(Trim$(col.Name), Trim$(heading), vbTextCompare) = 0 Then
+            OptionalColumn = col.Index
+            Exit Function
+        End If
+    Next col
 End Function
 
 Private Function CellText(ByVal cell As Range) As String
