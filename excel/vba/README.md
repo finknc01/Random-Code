@@ -1,55 +1,67 @@
-# VBA setup for server rack lookup, rack registry, and elevation
+# Server rack inventory — VBA installation and maintenance
 
-Works with the existing Excel lookup formula documented in [server-rack-lookup-formula.md](../server-rack-lookup-formula.md).
+This project consists of three Excel worksheets, four standard VBA modules, three worksheet events, and one dynamic lookup formula.
 
-## Install or update
+## Installation — desktop Excel
 
-Save the workbook as **.xlsm**. Open the VBA editor with **Alt+F11**.
+1. **Make a backup** of the working `.xlsm` file before replacing code.
+2. Open **Alt+F11** (Visual Basic Editor).
+3. Under **Modules**, add or replace the **entire contents** of these four standard modules:
+   - [modRackData.bas](modRackData.bas) — shared limits, table guards, text/U parsing (**NEW REQUIRED MODULE**).
+   - [modRackSearch.bas](modRackSearch.bas) — exclusive search inputs, including multi-cell paste.
+   - [modRackRegistry.bas](modRackRegistry.bas) — automatic registration and manual rack audits.
+   - [modRackElevation.bas](modRackElevation.bas) — renders 1–42U elevation.
+4. Under **Microsoft Excel Objects**, replace each sheet's existing `Worksheet_Change` procedure with the appropriate snippet (do **not** put these in standard modules):
+   - **Rack Lookup** → [RackLookup_SheetCode.txt](RackLookup_SheetCode.txt).
+   - **Server Inventory** → [ServerInventory_SheetCode.txt](ServerInventory_SheetCode.txt).
+   - **Rack Info** → [RackInfo_SheetCode.txt](RackInfo_SheetCode.txt).
+   Only one `Worksheet_Change` may exist per worksheet. Preserve other, unrelated sheet event procedures if present.
+5. In **Rack Lookup!E3**, use the **full** dynamic formula from [server-rack-lookup-formula.md](../server-rack-lookup-formula.md). Keep the spill destination E3:I free. It cannot be placed inside a Table.
+6. Run **Debug > Compile VBAProject**, then save and reopen if appropriate. Ensure VBA editor error trapping is **Break on Unhandled Errors**.
+7. Run `SyncRackRegistry` once from **Alt+F8** to register rack IDs that were present before worksheet events were installed; then run `ValidateRackRegistry` once to check duplicates and bad heights.
 
-### Standard modules (under Modules)
+## Workbook layout — exact names
 
-- **modRackSearch** — import or paste [modRackSearch.bas](modRackSearch.bas). Handles search-field clearing.
-- **modRackElevation** — replace the existing module code with [modRackElevation.bas](modRackElevation.bas). Draws the rack using the Rack Info worksheet.
-- **modRackRegistry** — create a standard module with this exact name and paste [modRackRegistry.bas](modRackRegistry.bas). Adds missing rack IDs without altering heights already stored.
+| Worksheet | Excel table | Required content |
+| --- | --- | --- |
+| **Server Inventory** | `tblInventory` | `Rack ID`, `U Position`, `Hostname`, `Serial Number`, `Asset Tag`; optional `Height (U)` |
+| **Rack Info** | `tblRacks` | `Rack ID`, `Barcode`, `Rack Height` |
+| **Rack Lookup** | none required | C3 Rack ID, C4 U position, C6 Hostname, C8 Serial Number, C10 Asset Tag; E2:I2 results headers, E3 spill formula, K2:M48 rack elevation |
 
-### Worksheet event code (under Microsoft Excel Objects)
+The `Height (U)` field describes **equipment height**, while `Rack Height` describes the **rack height**. Rack Height is blank for a newly registered rack, which means **42U** by default. The rack height must be an integer from **1 through 42**, never over 42.
 
-Put each event in its own worksheet's code window, **not** in a standard module:
+The Brady printer can generate barcode artwork; the workbook does not generate barcodes. Rack IDs and barcode fields can be maintained independently.
 
-| Excel worksheet | Code file |
-| --- | --- |
-| Rack Lookup | [RackLookup_SheetCode.txt](RackLookup_SheetCode.txt) |
-| Server Inventory | [ServerInventory_SheetCode.txt](ServerInventory_SheetCode.txt) |
-| Rack Info | [RackInfo_SheetCode.txt](RackInfo_SheetCode.txt) |
+## Changes and refreshes
 
-Replace an existing `Worksheet_Change` procedure for the same worksheet rather than creating a duplicate. Do not overwrite other unrelated sheet events.
+- Scanning or editing a search input clears conflicting inputs then redraws the elevation; a pasted Rack ID + U pair is preserved. When multiple searches are pasted simultaneously, precedence is hostname → serial → asset → rack/U.
+- Editing or pasting rows inside `tblInventory` redraws the current elevation; rack ID changes also synchronize new rack IDs into `tblRacks`.
+- Editing `tblRacks[Rack ID]` or `tblRacks[Rack Height]` validates the rack registry and redraws the elevation.
+- Rack synchronization **appends only**. It never deletes racks or modifies existing IDs, heights, or barcodes. The sync is case-insensitive and trims whitespace to avoid duplicate registrations.
+- A mistaken new Rack ID in inventory is still treated as a new rack. Correcting the typo does **not** delete the incorrect registry row: review and remove it manually after confirming it is unused.
+- Changing a formula result, importing data, or deleting an entire table can behave differently from typing inside a table; `Worksheet_Change` is not a general recalculation monitor. Use `SyncRackRegistry` / `RenderRackElevation` manually if needed.
+- Clear Search button macro: `ClearRackSearch`. Manual redraw: `RenderRackElevation`. Manual registry audit: `ValidateRackRegistry`.
 
-Select **Debug > Compile VBAProject** and save. If your workbook has existing racks not yet registered, run `SyncRackRegistry` once from **Alt+F8**.
+## Rendering / validation rules
 
-## Workbook structure
+- Visualization uses **Rack Lookup!K2:M48** for a 42U rack; code also clears K2:M126 so older taller diagrams are removed. Do not store other data in that reserved area.
+- `U Position` is the **topmost U** a server occupies. `40` and `U40` work equivalently. Rack+U search highlights devices whose **topmost U** matches; lower occupied units of multi-U equipment are still drawn.
+- Equipment `Height (U)` may be omitted or left blank; then it is treated as 1U. A nonblank invalid height is counted and **not** drawn, rather than silently defaulted to 1U.
+- Overlapping equipment U slots are red, populated slots blue, matched slots yellow, and empty slots gray. Invalid U positions or equipment extending out of a rack are skipped and counted.
+- Duplicate Rack IDs in `tblRacks` are reported by `ValidateRackRegistry` and marked in the drawing when a duplicated rack is selected. For backward compatibility the elevation uses the first matching registry record until duplicates are corrected.
+- Blank Rack Height uses 42U. Invalid or missing rack metadata produces a warning in the drawing; invalid heights are not silently treated as verified. Missing `tblRacks` / required columns produce an explicit error rather than masking the broken structure.
 
-- **Server Inventory** has `tblInventory` with at least: `Rack ID`, `U Position`, `Hostname`, `Serial Number`, `Asset Tag`. Optional: `Height (U)` (height of each piece of equipment).
-- **Rack Info** has `tblRacks`, with `Rack ID`, `Barcode`, `Rack Height`. One row per rack. Rack IDs are ordinary table values, **not a spilled UNIQUE formula within the table**. Blank Rack Height means 42U.
-- **Rack Lookup** inputs: C3 = Rack ID; C4 = U position; C6 = hostname; C8 = serial; C10 = asset. The formula in E3 spills results into E:I. The graphical rack elevation occupies K2:M48 for a 42U rack (the VBA also clears the old K2:M126 range to remove legacy taller drawings).
+## Resource safety
 
-## Automatic updates
+- Before iterating, the code checks that `tblInventory` has no more than **50,000** data rows and `tblRacks` has no more than **10,000**.
+- **Do not resize a Table to an entire sheet/column.** Use **Table Design > Resize Table** to include only its actual records. Excel Tables expand automatically as you add real rows.
+- An oversized Table causes a descriptive error instead of a long scan or out-of-memory condition.
+- The code preserves and restores `Application.EnableEvents` and screen updating settings during modifications. Avoid interrupting execution without restoring those settings if Excel is paused in the debugger.
 
-- Changes to **Rack Lookup** search inputs clear conflicting fields and redraw the elevation.
-- Changes anywhere inside `tblInventory` redraw the current elevation; changes specifically in `tblInventory[Rack ID]` also run `SyncRackRegistry`.
-- Changes to `tblRacks[Rack ID]` or `tblRacks[Rack Height]` redraw the current elevation.
-- Newly encountered rack IDs are appended to `tblRacks`. Existing rack rows, barcode information, and heights are not overwritten or removed. New Rack Height cells are blank, so they default to 42U in the display.
-- The synchronization does **not** automatically repair typos in rack IDs or distinguish a valid new rack from an accidental ID. Review new rack IDs and consider input validation before broad deployment.
-- **Do not resize the tables to entire worksheet columns**: an oversized `tblRacks` previously caused an Out of Memory error. The registry helper refuses tables above 10,000 rows as a safeguard.
-- Excel's `Worksheet_Change` event responds to direct edits, not recalculations of formula-driven cells. If you later populate rack IDs using formulas, the event-driven registry will need a different refresh mechanism.
+## Compatibility and limitations
 
-## Rack elevation details
-
-- Rack height is looked up from `Rack Info!tblRacks` and must be a whole number from 1 to **42U maximum**. Blank values default to 42U. Invalid, over-42U, or unregistered heights fall back to 42U with a warning; correct those records rather than interpreting the fallback as verified. (Correct invalid/unregistered values rather than treating that default as verified.)
-- Equipment is placed by the **topmost U position** with optional `Height (U)` from `tblInventory`; without equipment height, the code assumes 1U.
-- All equipment in a rack is shown; matching equipment is highlighted for a rack+U, hostname, serial, or asset search.
-- Overlaps are marked red; missing or out-of-range positions are counted but not drawn.
-- `RenderRackElevation` can be run from **Alt+F8** for manual refresh; `ClearRackSearch` clears the search and redraws the empty view.
-
-## Cautions
-
-Automatic rack registration writes to the workbook and may cause unintended new rack rows if the Rack ID is mistyped. Back up the workbook before enabling and consider data validation. The code is stored in GitHub but must still be compiled and tested inside desktop Excel.
+- Requires desktop Microsoft Excel supporting **LET / FILTER / CHOOSE** dynamic arrays and VBA. The registry uses late-bound `Scripting.Dictionary` on Windows.
+- Excel lookup text comparison is case-insensitive. VBA uses trimmed case-insensitive text keys. Store serial numbers / Rack IDs as **Text** if leading zeros are significant.
+- Number strings for U should use the standard form `40` or `U40`. Rack metadata and equipment height must be whole numbers 1–42.
+- This project is source code/documentation, **not a precompiled, tested .xlsm**. Complete the verification in [TEST_PLAN.md](TEST_PLAN.md) on a backup workbook before deployment.
+- Keep actual organization inventory/hostnames/serials out of this public code repository.
