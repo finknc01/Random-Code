@@ -30,7 +30,7 @@ Select **Debug > Compile VBAProject** and save. If your workbook has existing ra
 
 - **Server Inventory** has `tblInventory` with at least: `Rack ID`, `U Position`, `Hostname`, `Serial Number`, `Asset Tag`. Optional: `Height (U)` (height of each piece of equipment).
 - **Rack Info** has `tblRacks`, with `Rack ID`, `Barcode`, `Rack Height`. One row per rack. Rack IDs are ordinary table values, **not a spilled UNIQUE formula within the table**. Blank Rack Height means 42U.
-- **Rack Lookup** inputs: C3 = Rack ID; C4 = U position; C6 = hostname; C8 = serial; C10 = asset. The formula in E3 spills results into E:I. The graphical rack elevation uses K2:M126.
+- **Rack Lookup** inputs: C3 = Rack ID; C4 = U position; C6 = hostname; C8 = serial; C10 = asset. The formula in E3 spills results into E:I. The graphical rack elevation occupies K2:M48 for a 42U rack (the VBA also clears the old K2:M126 range to remove legacy taller drawings).
 
 ## Automatic updates
 
@@ -44,7 +44,7 @@ Select **Debug > Compile VBAProject** and save. If your workbook has existing ra
 
 ## Rack elevation details
 
-- Rack height is looked up from `Rack Info!tblRacks` and can be 1–120U. Blank/invalid/unregistered heights fall back to 42U with a warning. (Correct invalid/unregistered values rather than treating that default as verified.)
+- Rack height is looked up from `Rack Info!tblRacks` and must be a whole number from 1 to **42U maximum**. Blank values default to 42U. Invalid, over-42U, or unregistered heights fall back to 42U with a warning; correct those records rather than interpreting the fallback as verified. (Correct invalid/unregistered values rather than treating that default as verified.)
 - Equipment is placed by the **topmost U position** with optional `Height (U)` from `tblInventory`; without equipment height, the code assumes 1U.
 - All equipment in a rack is shown; matching equipment is highlighted for a rack+U, hostname, serial, or asset search.
 - Overlaps are marked red; missing or out-of-range positions are counted but not drawn.
