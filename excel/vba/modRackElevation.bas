@@ -1,45 +1,43 @@
 Option Explicit
 
-' Rack elevation has a maximum supported rack height of 42U.
-' Rack-specific height comes from tblRacks on the Rack Info worksheet.
-Private Const DEFAULT_RACK_UNITS As Long = 42
-Private Const MAX_RACK_UNITS As Long = 42
 Private Const FIRST_UNIT_ROW As Long = 7
 
+' Draws the selected rack in Rack Lookup!K2:M48 (42U maximum).
+' K2:M126 is cleared to remove remnants of older, taller displays.
 Public Sub RenderRackElevation()
-    Dim ws As Worksheet, tbl As ListObject, entry As ListRow
+    Dim ws As Worksheet, inventory As ListObject, entry As ListRow
     Dim rackCol As Long, uCol As Long, hostCol As Long
     Dim serialCol As Long, assetCol As Long, heightCol As Long
-    Dim requestedRack As String, selectedRack As String, uSearch As String
-    Dim searchValue As String, searchCol As Long, candidate As String
-    Dim label() As String, serials() As String
-    Dim used() As Boolean, highlighted() As Boolean, conflicts() As Boolean
-    Dim u As Long, topU As Long, bottomU As Long, unitHeight As Long
-    Dim outputRow As Long, deviceCount As Long, skipped As Long, hitCount As Long
-    Dim isMatch As Boolean, matchedAnywhere As Boolean, multipleRacks As Boolean
-    Dim hostName As String, serialNo As String, savedEvents As Boolean
-    Dim savedScreen As Boolean
-    Dim rowCells As Range
+    Dim selectedRack As String, candidate As String
+    Dim uSearch As String, searchValue As String
+    Dim searchCol As Long, requestedU As Long
+    Dim labels() As String, serials() As String
+    Dim occupied() As Boolean, highlighted() As Boolean, conflicts() As Boolean
+    Dim u As Long, topU As Long, bottomU As Long, deviceHeight As Long
+    Dim displayRow As Long, deviceCount As Long, skipped As Long, hitCount As Long
+    Dim matchThisDevice As Boolean, anyMatch As Boolean, moreThanOneRack As Boolean
+    Dim hostname As String, serialNumber As String, rawHeight As String
     Dim rackUnits As Long, heightNote As String
+    Dim rowCells As Range
+    Dim priorEvents As Boolean, priorScreen As Boolean
 
-    savedEvents = Application.EnableEvents
-    savedScreen = Application.ScreenUpdating
+    priorEvents = Application.EnableEvents
+    priorScreen = Application.ScreenUpdating
     On Error GoTo HandleError
     Application.EnableEvents = False
     Application.ScreenUpdating = False
 
     Set ws = ThisWorkbook.Worksheets("Rack Lookup")
-    Set tbl = ThisWorkbook.Worksheets("Server Inventory").ListObjects("tblInventory")
+    Set inventory = modRackData.GetTable("Server Inventory", "tblInventory")
+    modRackData.CheckTableSize inventory, modRackData.MAX_INVENTORY_ROWS
 
-    rackCol = tbl.ListColumns("Rack ID").Index
-    uCol = tbl.ListColumns("U Position").Index
-    hostCol = tbl.ListColumns("Hostname").Index
-    serialCol = tbl.ListColumns("Serial Number").Index
-    assetCol = tbl.ListColumns("Asset Tag").Index
-    heightCol = OptionalColumn(tbl, "Height (U)")
+    rackCol = modRackData.ColumnIndex(inventory, "Rack ID")
+    uCol = modRackData.ColumnIndex(inventory, "U Position")
+    hostCol = modRackData.ColumnIndex(inventory, "Hostname")
+    serialCol = modRackData.ColumnIndex(inventory, "Serial Number")
+    assetCol = modRackData.ColumnIndex(inventory, "Asset Tag")
+    heightCol = modRackData.ColumnIndex(inventory, "Height (U)", False)
 
-    ' Clear previous drawings, including legacy elevations taller than 42U.
-    ' Current 42U output ends at row 48; old drawings may extend to row 126.
     With ws.Range("K2:M126")
         .ClearContents
         .Interior.Color = RGB(255, 255, 255)
@@ -50,136 +48,144 @@ Public Sub RenderRackElevation()
     ws.Columns("K").ColumnWidth = 9
     ws.Columns("L").ColumnWidth = 28
     ws.Columns("M").ColumnWidth = 23
-    ws.Range("K2").Value = "RACK ELEVATION"
+    ws.Range("K2").Value2 = "RACK ELEVATION"
     ws.Range("K2").Font.Bold = True
 
-    requestedRack = CellText(ws.Range("C3"))
-    uSearch = CellText(ws.Range("C4"))
+    selectedRack = modRackData.TextValue(ws.Range("C3").Value2)
+    uSearch = modRackData.TextValue(ws.Range("C4").Value2)
+    If Len(uSearch) > 0 Then requestedU = modRackData.ParseU(uSearch)
 
-    ' Same search precedence as the formula in E3.
-    If Len(CellText(ws.Range("C6"))) > 0 Then
+    ' Keep the same priority as Rack Lookup!E3:
+    ' hostname > serial > asset tag > rack / U position.
+    If Len(modRackData.TextValue(ws.Range("C6").Value2)) > 0 Then
         searchCol = hostCol
-        searchValue = CellText(ws.Range("C6"))
-    ElseIf Len(CellText(ws.Range("C8"))) > 0 Then
+        searchValue = modRackData.TextValue(ws.Range("C6").Value2)
+    ElseIf Len(modRackData.TextValue(ws.Range("C8").Value2)) > 0 Then
         searchCol = serialCol
-        searchValue = CellText(ws.Range("C8"))
-    ElseIf Len(CellText(ws.Range("C10"))) > 0 Then
+        searchValue = modRackData.TextValue(ws.Range("C8").Value2)
+    ElseIf Len(modRackData.TextValue(ws.Range("C10").Value2)) > 0 Then
         searchCol = assetCol
-        searchValue = CellText(ws.Range("C10"))
-    Else
-        selectedRack = requestedRack
+        searchValue = modRackData.TextValue(ws.Range("C10").Value2)
     End If
 
-    ' For non-rack searches, find the rack that contains the matching server.
     If searchCol > 0 Then
-        For Each entry In tbl.ListRows
-            If StrComp(RowText(entry, searchCol), searchValue, vbTextCompare) = 0 Then
-                matchedAnywhere = True
-                candidate = RowText(entry, rackCol)
+        selectedRack = ""
+        For Each entry In inventory.ListRows
+            If StrComp(modRackData.RowText(entry, searchCol), _
+                       searchValue, vbTextCompare) = 0 Then
+                anyMatch = True
+                candidate = modRackData.RowText(entry, rackCol)
                 If Len(candidate) = 0 Then
-                    ws.Range("K3").Value = "Matching server has no Rack ID."
+                    ws.Range("K3").Value2 = "Matching server has no Rack ID."
                     GoTo CleanExit
                 End If
                 If Len(selectedRack) = 0 Then
                     selectedRack = candidate
                 ElseIf StrComp(selectedRack, candidate, vbTextCompare) <> 0 Then
-                    multipleRacks = True
+                    moreThanOneRack = True
                     Exit For
                 End If
             End If
         Next entry
 
-        If multipleRacks Then
-            ws.Range("K3").Value = "Matches found in multiple racks."
-            ws.Range("K4").Value = "Use a unique identifier or a rack search."
+        If moreThanOneRack Then
+            ws.Range("K3").Value2 = "Matches found in multiple racks."
+            ws.Range("K4").Value2 = "Search a rack or use a unique device ID."
             GoTo CleanExit
-        End If
-        If Not matchedAnywhere Then
-            ws.Range("K3").Value = "No matching server found."
+        ElseIf Not anyMatch Then
+            ws.Range("K3").Value2 = "No matching server found."
             GoTo CleanExit
         End If
     End If
 
     If Len(selectedRack) = 0 Then
         If Len(uSearch) > 0 Then
-            ws.Range("K3").Value = "Enter a Rack ID in C3."
+            ws.Range("K3").Value2 = "Enter a Rack ID in C3."
         Else
-            ws.Range("K3").Value = "Scan a rack or search for a server."
+            ws.Range("K3").Value2 = "Scan a rack or search for a server."
         End If
         GoTo CleanExit
     End If
 
     rackUnits = GetRackUnits(selectedRack, heightNote)
-
-    ReDim label(1 To rackUnits)
+    ReDim labels(1 To rackUnits)
     ReDim serials(1 To rackUnits)
-    ReDim used(1 To rackUnits)
+    ReDim occupied(1 To rackUnits)
     ReDim highlighted(1 To rackUnits)
     ReDim conflicts(1 To rackUnits)
 
-    For Each entry In tbl.ListRows
-        If StrComp(RowText(entry, rackCol), selectedRack, vbTextCompare) = 0 Then
+    For Each entry In inventory.ListRows
+        If StrComp(modRackData.RowText(entry, rackCol), _
+                   selectedRack, vbTextCompare) = 0 Then
             deviceCount = deviceCount + 1
-            hostName = RowText(entry, hostCol)
-            serialNo = RowText(entry, serialCol)
-            If Len(hostName) = 0 Then hostName = "(hostname blank)"
+            hostname = modRackData.RowText(entry, hostCol)
+            serialNumber = modRackData.RowText(entry, serialCol)
+            If Len(hostname) = 0 Then hostname = "(hostname blank)"
 
-            topU = ReadU(RowText(entry, uCol))
-            unitHeight = 1
+            topU = modRackData.ParseU(modRackData.RowText(entry, uCol))
+            deviceHeight = 1
             If heightCol > 0 Then
-                If IsNumeric(RowText(entry, heightCol)) Then
-                    unitHeight = CLng(Val(RowText(entry, heightCol)))
+                rawHeight = modRackData.RowText(entry, heightCol)
+                If Len(rawHeight) > 0 Then
+                    deviceHeight = modRackData.ParseU(rawHeight, False)
                 End If
             End If
-            bottomU = topU - unitHeight + 1
 
-            isMatch = False
-            If searchCol > 0 Then
-                isMatch = (StrComp(RowText(entry, searchCol), searchValue, vbTextCompare) = 0)
-            ElseIf Len(uSearch) > 0 Then
-                isMatch = (StrComp(RowText(entry, uCol), uSearch, vbTextCompare) = 0)
-            End If
-            If isMatch Then hitCount = hitCount + 1
-
-            ' Invalid/out-of-range U values must not be drawn inaccurately.
-            If topU < 1 Or topU > rackUnits Or bottomU < 1 _
-               Or unitHeight < 1 Then
+            ' Invalid heights are never silently interpreted as 1U.
+            bottomU = topU - deviceHeight + 1
+            If topU < 1 Or topU > rackUnits Or _
+               deviceHeight < 1 Or bottomU < 1 Then
                 skipped = skipped + 1
             Else
+                matchThisDevice = False
+                If searchCol > 0 Then
+                    matchThisDevice = (StrComp( _
+                        modRackData.RowText(entry, searchCol), _
+                        searchValue, vbTextCompare) = 0)
+                ElseIf Len(uSearch) > 0 And requestedU > 0 Then
+                    ' Search and E3 both match the TOP position of a device.
+                    matchThisDevice = (topU = requestedU)
+                End If
+                If matchThisDevice Then hitCount = hitCount + 1
+
                 For u = topU To bottomU Step -1
-                    If used(u) Then
+                    If occupied(u) Then
                         conflicts(u) = True
-                        label(u) = "U POSITION CONFLICT"
+                        labels(u) = "U POSITION CONFLICT"
                         serials(u) = ""
-                    Else
-                        If u = topU Then
-                            label(u) = hostName & IIf(unitHeight > 1, _
-                                " (" & unitHeight & "U)", "")
-                            serials(u) = serialNo
-                        Else
-                            label(u) = "| " & hostName
-                            serials(u) = ""
+                    ElseIf u = topU Then
+                        labels(u) = hostname
+                        If deviceHeight > 1 Then
+                            labels(u) = labels(u) & " (" & deviceHeight & "U)"
                         End If
+                        serials(u) = serialNumber
+                    Else
+                        labels(u) = "| " & hostname
+                        serials(u) = ""
                     End If
-                    used(u) = True
-                    If isMatch Then highlighted(u) = True
+
+                    occupied(u) = True
+                    If matchThisDevice Then highlighted(u) = True
                 Next u
             End If
         End If
     Next entry
 
-    ws.Range("K3").Value = selectedRack
-    ws.Range("L3").Value = rackUnits & "U rack | " & deviceCount & " records"
-    If Len(heightNote) > 0 Then ws.Range("K4").Value = heightNote
+    ws.Range("K3").Value2 = selectedRack
+    ws.Range("L3").Value2 = rackUnits & "U rack | " & deviceCount & " records"
+    If Len(heightNote) > 0 Then ws.Range("K4").Value2 = heightNote
+
     If skipped > 0 Then
-        ws.Range("M3").Value = skipped & " invalid/out-of-range U"
+        ws.Range("M3").Value2 = skipped & " invalid U/height records"
+    ElseIf Len(uSearch) > 0 And requestedU = 0 And searchCol = 0 Then
+        ws.Range("M3").Value2 = "Invalid U search (1-42)"
     ElseIf (searchCol > 0 Or Len(uSearch) > 0) And hitCount = 0 Then
-        ws.Range("M3").Value = "No highlighted match"
+        ws.Range("M3").Value2 = "No highlighted match"
     End If
 
-    ws.Range("K6").Value = "U"
-    ws.Range("L6").Value = "Hostname"
-    ws.Range("M6").Value = "Serial Number"
+    ws.Range("K6").Value2 = "U"
+    ws.Range("L6").Value2 = "Hostname"
+    ws.Range("M6").Value2 = "Serial Number"
     With ws.Range("K6:M6")
         .Font.Bold = True
         .Interior.Color = RGB(40, 54, 68)
@@ -187,12 +193,13 @@ Public Sub RenderRackElevation()
     End With
 
     For u = rackUnits To 1 Step -1
-        outputRow = FIRST_UNIT_ROW + rackUnits - u
-        Set rowCells = ws.Range("K" & outputRow & ":M" & outputRow)
-        ws.Cells(outputRow, "K").Value = "U" & u
-        If used(u) Then
-            ws.Cells(outputRow, "L").Value = label(u)
-            ws.Cells(outputRow, "M").Value = serials(u)
+        displayRow = FIRST_UNIT_ROW + rackUnits - u
+        Set rowCells = ws.Range("K" & displayRow & ":M" & displayRow)
+        ws.Cells(displayRow, "K").Value2 = "U" & u
+
+        If occupied(u) Then
+            ws.Cells(displayRow, "L").Value2 = labels(u)
+            ws.Cells(displayRow, "M").Value2 = serials(u)
             rowCells.Interior.Color = RGB(220, 234, 246)
         Else
             rowCells.Interior.Color = RGB(246, 247, 249)
@@ -210,105 +217,49 @@ Public Sub RenderRackElevation()
     Next u
 
 CleanExit:
-    Application.EnableEvents = savedEvents
-    Application.ScreenUpdating = savedScreen
+    Application.EnableEvents = priorEvents
+    Application.ScreenUpdating = priorScreen
     Exit Sub
 
 HandleError:
-    MsgBox "Rack elevation error: " & Err.Description, vbExclamation
+    MsgBox "Rack elevation error (" & Err.Number & "): " & _
+           Err.Description, vbExclamation
     Resume CleanExit
 End Sub
 
-' Rack Info is the rack-level registry: one row per rack.
-' Blank/unlisted heights default to 42U. Invalid heights are flagged.
-' The optional Height (U) column on Server Inventory is DIFFERENT:
-' it describes how many U a single device occupies.
 Private Function GetRackUnits(ByVal rackId As String, _
                               ByRef note As String) As Long
-    Dim racks As ListObject
-    Dim entry As ListRow
+    Dim racks As ListObject, entry As ListRow
     Dim idCol As Long, heightCol As Long
     Dim rawHeight As String
-    Dim heightValue As Double
     Dim found As Boolean
 
-    GetRackUnits = DEFAULT_RACK_UNITS
-
-    On Error Resume Next
-    Set racks = ThisWorkbook.Worksheets("Rack Info").ListObjects("tblRacks")
-    On Error GoTo 0
-
-    If racks Is Nothing Then
-        note = "tblRacks not found - defaulting to 42U"
-        Exit Function
-    End If
-
-    idCol = OptionalColumn(racks, "Rack ID")
-    heightCol = OptionalColumn(racks, "Rack Height")
-    If idCol = 0 Or heightCol = 0 Then
-        note = "Check tblRacks headers (Rack ID, Rack Height)"
-        Exit Function
-    End If
+    GetRackUnits = modRackData.DEFAULT_RACK_UNITS
+    Set racks = modRackData.GetTable("Rack Info", "tblRacks")
+    modRackData.CheckTableSize racks, modRackData.MAX_RACK_ROWS
+    idCol = modRackData.ColumnIndex(racks, "Rack ID")
+    heightCol = modRackData.ColumnIndex(racks, "Rack Height")
 
     For Each entry In racks.ListRows
-        If StrComp(RowText(entry, idCol), rackId, vbTextCompare) = 0 Then
+        If StrComp(modRackData.RowText(entry, idCol), _
+                   rackId, vbTextCompare) = 0 Then
             If found Then
-                note = "Duplicate Rack ID in tblRacks; using first"
+                note = "Duplicate Rack ID in Rack Info; using first"
                 Exit Function
             End If
-
             found = True
-            rawHeight = RowText(entry, heightCol)
-
+            rawHeight = modRackData.RowText(entry, heightCol)
             If Len(rawHeight) = 0 Then
                 note = "Rack Height blank - defaulting to 42U"
-            ElseIf Not IsNumeric(rawHeight) Then
-                note = "Non-numeric Rack Height - defaulting to 42U"
             Else
-                heightValue = CDbl(rawHeight)
-                If heightValue < 1 Or heightValue > MAX_RACK_UNITS _
-                   Or heightValue <> Fix(heightValue) Then
-                    note = "Invalid Rack Height - defaulting to 42U"
-                Else
-                    GetRackUnits = CLng(heightValue)
+                GetRackUnits = modRackData.RackHeight(rawHeight)
+                If GetRackUnits = 0 Then
+                    GetRackUnits = modRackData.DEFAULT_RACK_UNITS
+                    note = "Invalid Rack Height (1-42 only) - using 42U"
                 End If
             End If
         End If
     Next entry
 
-    If Not found Then note = "Rack missing from tblRacks - defaulting to 42U"
-End Function
-
-Private Function OptionalColumn(ByVal tbl As ListObject, _
-                                ByVal heading As String) As Long
-    Dim col As ListColumn
-
-    ' Avoid raising an error when an optional column is absent.
-    ' A missing column returns zero.
-    For Each col In tbl.ListColumns
-        If StrComp(Trim$(col.Name), Trim$(heading), vbTextCompare) = 0 Then
-            OptionalColumn = col.Index
-            Exit Function
-        End If
-    Next col
-End Function
-
-Private Function CellText(ByVal cell As Range) As String
-    If IsError(cell.Value2) Then Exit Function
-    CellText = Trim$(CStr(cell.Value2))
-End Function
-
-Private Function RowText(ByVal entry As ListRow, ByVal col As Long) As String
-    Dim v As Variant
-    v = entry.Range.Cells(1, col).Value2
-    If Not IsError(v) Then RowText = Trim$(CStr(v))
-End Function
-
-Private Function ReadU(ByVal value As String) As Long
-    Dim s As String
-    s = UCase$(Trim$(value))
-    If Left$(s, 1) = "U" Then s = Mid$(s, 2)
-    If Not IsNumeric(s) Then Exit Function
-    If Val(s) <> Fix(Val(s)) Then Exit Function
-    ReadU = CLng(Val(s))
+    If Not found Then note = "Rack unregistered in Rack Info - using 42U"
 End Function
