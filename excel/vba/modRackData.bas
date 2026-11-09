@@ -78,7 +78,7 @@ Public Function ParseU(ByVal rawValue As String, _
     Dim value As String
     Dim i As Long
     Dim code As Long
-    Dim numericValue As Long
+    Dim numericValue As Double
 
     value = UCase$(Trim$(rawValue))
     If allowPrefix Then
@@ -91,9 +91,9 @@ Public Function ParseU(ByVal rawValue As String, _
         If code < 48 Or code > 57 Then Exit Function
     Next i
 
-    numericValue = CLng(value)
+    numericValue = CDbl(value)
     If numericValue >= 1 And numericValue <= MAX_RACK_UNITS Then
-        ParseU = numericValue
+        ParseU = CLng(numericValue)
     End If
 End Function
 
