@@ -13,6 +13,7 @@ Public Sub RenderRackElevation()
     Dim searchCol As Long, requestedU As Long
     Dim labels() As String, serials() As String
     Dim occupied() As Boolean, highlighted() As Boolean, conflicts() As Boolean
+    Dim slotOwner() As Long
     Dim u As Long, topU As Long, bottomU As Long, deviceHeight As Long
     Dim displayRow As Long, deviceCount As Long, skipped As Long, hitCount As Long
     Dim matchThisDevice As Boolean, anyMatch As Boolean, moreThanOneRack As Boolean
@@ -38,6 +39,8 @@ Public Sub RenderRackElevation()
     assetCol = modRackData.ColumnIndex(inventory, "Asset Tag")
     heightCol = modRackData.ColumnIndex(inventory, "Height (U)", False)
 
+    ' Unmerge the device blocks from the previous drawing before clearing.
+    ws.Range("L7:M126").UnMerge
     With ws.Range("K2:M126")
         .ClearContents
         .Interior.Color = RGB(255, 255, 255)
@@ -113,6 +116,7 @@ Public Sub RenderRackElevation()
     ReDim occupied(1 To rackUnits)
     ReDim highlighted(1 To rackUnits)
     ReDim conflicts(1 To rackUnits)
+    ReDim slotOwner(1 To rackUnits)
 
     For Each entry In inventory.ListRows
         If StrComp(modRackData.RowText(entry, rackCol), _
@@ -150,18 +154,24 @@ Public Sub RenderRackElevation()
 
                 For u = topU To bottomU Step -1
                     If occupied(u) Then
+                        ' Never merge overlapping devices into an ordinary block.
                         conflicts(u) = True
+                        slotOwner(u) = 0
                         labels(u) = "U POSITION CONFLICT"
                         serials(u) = ""
-                    ElseIf u = topU Then
-                        labels(u) = hostname
-                        If deviceHeight > 1 Then
-                            labels(u) = labels(u) & " (" & deviceHeight & "U)"
-                        End If
-                        serials(u) = serialNumber
                     Else
-                        labels(u) = "| " & hostname
-                        serials(u) = ""
+                        ' This record owns each of its U slots, not just its top U.
+                        slotOwner(u) = deviceCount
+                        serials(u) = serialNumber
+                        If u = topU Then
+                            labels(u) = hostname
+                            If deviceHeight > 1 Then
+                                labels(u) = labels(u) & " (" & deviceHeight & "U)"
+                            End If
+                        Else
+                            ' Used only when a conflict splits a device block.
+                            labels(u) = hostname & " (continued)"
+                        End If
                     End If
 
                     occupied(u) = True
@@ -198,9 +208,17 @@ Public Sub RenderRackElevation()
         ws.Cells(displayRow, "K").Value2 = "U" & u
 
         If occupied(u) Then
-            ws.Cells(displayRow, "L").Value2 = labels(u)
-            ws.Cells(displayRow, "M").Value2 = serials(u)
             rowCells.Interior.Color = RGB(220, 234, 246)
+            If conflicts(u) Then
+                ws.Cells(displayRow, "L").Value2 = labels(u)
+            ElseIf u = rackUnits Then
+                ws.Cells(displayRow, "L").Value2 = labels(u)
+                ws.Cells(displayRow, "M").Value2 = serials(u)
+            ElseIf slotOwner(u) <> slotOwner(u + 1) Then
+                ' Show the label once per uninterrupted device block.
+                ws.Cells(displayRow, "L").Value2 = labels(u)
+                ws.Cells(displayRow, "M").Value2 = serials(u)
+            End If
         Else
             rowCells.Interior.Color = RGB(246, 247, 249)
         End If
@@ -212,9 +230,21 @@ Public Sub RenderRackElevation()
             rowCells.Interior.Color = RGB(255, 173, 173)
             rowCells.Font.Bold = True
         End If
-        rowCells.Borders(xlEdgeBottom).LineStyle = xlContinuous
-        rowCells.Borders(xlEdgeBottom).Color = RGB(219, 223, 228)
+
+        ' Keep individual U markings while the server areas form one block.
+        With ws.Cells(displayRow, "K").Borders(xlEdgeBottom)
+            .LineStyle = xlContinuous
+            .Color = RGB(219, 223, 228)
+        End With
+        If slotOwner(u) = 0 Then
+            With ws.Range("L" & displayRow & ":M" & displayRow).Borders(xlEdgeBottom)
+                .LineStyle = xlContinuous
+                .Color = RGB(219, 223, 228)
+            End With
+        End If
     Next u
+
+    DrawDeviceBlocks ws, slotOwner, rackUnits
 
 CleanExit:
     Application.EnableEvents = priorEvents
@@ -225,6 +255,55 @@ HandleError:
     MsgBox "Rack elevation error (" & Err.Number & "): " & _
            Err.Description, vbExclamation
     Resume CleanExit
+End Sub
+
+' Merge only the display cells belonging to the same uninterrupted device.
+' U labels in column K are never merged; conflicts remain separate red rows.
+Private Sub DrawDeviceBlocks(ByVal ws As Worksheet, _
+                             ByRef slotOwner() As Long, _
+                             ByVal rackUnits As Long)
+    Dim u As Long, currentRow As Long, firstRow As Long
+    Dim activeOwner As Long
+
+    For u = rackUnits To 1 Step -1
+        currentRow = FIRST_UNIT_ROW + rackUnits - u
+
+        If slotOwner(u) <> activeOwner Then
+            If activeOwner > 0 Then
+                FrameDeviceBlock ws, firstRow, currentRow - 1
+            End If
+
+            activeOwner = slotOwner(u)
+            If activeOwner > 0 Then firstRow = currentRow
+        End If
+    Next u
+
+    If activeOwner > 0 Then
+        FrameDeviceBlock ws, firstRow, FIRST_UNIT_ROW + rackUnits - 1
+    End If
+End Sub
+
+Private Sub FrameDeviceBlock(ByVal ws As Worksheet, _
+                             ByVal firstRow As Long, _
+                             ByVal lastRow As Long)
+    Dim deviceArea As Range
+
+    ' Only the first row contains text, so merging never discards device data.
+    If lastRow > firstRow Then
+        ws.Range("L" & firstRow & ":L" & lastRow).Merge
+        ws.Range("M" & firstRow & ":M" & lastRow).Merge
+    End If
+
+    Set deviceArea = ws.Range("L" & firstRow & ":M" & lastRow)
+    With deviceArea
+        .VerticalAlignment = xlVAlignCenter
+        .Borders(xlEdgeTop).LineStyle = xlContinuous
+        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+        .Borders(xlEdgeLeft).LineStyle = xlContinuous
+        .Borders(xlEdgeRight).LineStyle = xlContinuous
+        .Borders(xlInsideVertical).LineStyle = xlContinuous
+        .Borders.Color = RGB(113, 143, 172)
+    End With
 End Sub
 
 Private Function GetRackUnits(ByVal rackId As String, _
