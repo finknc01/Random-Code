@@ -165,9 +165,6 @@ Public Sub RenderRackElevation()
                         serials(u) = serialNumber
                         If u = topU Then
                             labels(u) = hostname
-                            If deviceHeight > 1 Then
-                                labels(u) = labels(u) & " (" & deviceHeight & "U)"
-                            End If
                         Else
                             ' Used only when a conflict splits a device block.
                             labels(u) = hostname & " (continued)"
