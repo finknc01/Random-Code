@@ -47,7 +47,8 @@ The Brady printer can generate barcode artwork; the workbook does not generate b
 - Visualization uses **Rack Lookup!K2:M48** for a 42U rack; code also clears K2:M126 so older taller diagrams are removed. Do not store other data in that reserved area.
 - `U Position` is the **topmost U** a server occupies. `40` and `U40` work equivalently. Rack+U search highlights devices whose **topmost U** matches; lower occupied units of multi-U equipment are still drawn.
 - Equipment `Height (U)` may be omitted or left blank; then it is treated as 1U. A nonblank invalid height is counted and **not** drawn, rather than silently defaulted to 1U.
-- Overlapping equipment U slots are red, populated slots blue, matched slots yellow, and empty slots gray. Invalid U positions or equipment extending out of a rack are skipped and counted.
+- Equipment spanning multiple U positions is drawn as one continuous block: hostname and serial cells are vertically merged over the occupied units, while column K retains individual U labels. A matched device highlights across its full height. The display unmerges old blocks before each redraw (including when switching to a shorter rack).
+- Overlapping equipment U slots are red, populated slots blue, matched slots yellow, and empty slots gray. Conflicting rows remain unmerged so overlapping devices cannot be mistaken for a single device. Invalid U positions or equipment extending out of a rack are skipped and counted.
 - Duplicate Rack IDs in `tblRacks` are reported by `ValidateRackRegistry` and marked in the drawing when a duplicated rack is selected. For backward compatibility the elevation uses the first matching registry record until duplicates are corrected.
 - Blank Rack Height uses 42U. Invalid or missing rack metadata produces a warning in the drawing; invalid heights are not silently treated as verified. Missing `tblRacks` / required columns produce an explicit error rather than masking the broken structure.
 
