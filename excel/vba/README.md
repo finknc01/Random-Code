@@ -1,6 +1,6 @@
 # Server rack inventory — VBA installation and maintenance
 
-This project consists of three Excel worksheets, five core standard VBA modules, three optional button modules, one optional Add Server UserForm, three worksheet events, and one dynamic lookup formula.
+This project consists of three Excel worksheets, five core standard VBA modules, three button entry-point modules, one optional Add Server UserForm, three worksheet events, and one dynamic lookup formula.
 
 ## Installation — desktop Excel
 
@@ -12,20 +12,24 @@ This project consists of three Excel worksheets, five core standard VBA modules,
    - [modRackRegistry.bas](modRackRegistry.bas) — automatic registration and manual rack audits.
    - [modRackElevation.bas](modRackElevation.bas) — renders 1–42U elevation.
    - [modServerEntry.bas](modServerEntry.bas) — validates and appends a server, including multi-U collision detection (**REQUIRED FOR ADD SERVER**).
-   If you have Clear and Refresh buttons, also paste these into standard modules named exactly as shown:
+   For the three Rack Lookup ActiveX buttons, also use these standard modules named exactly as shown:
    - [buttonClear.bas](buttonClear.bas) → module **buttonClear**, public macro **ClearRackLookupButton**.
    - [buttonRefresh.bas](buttonRefresh.bas) → module **buttonRefresh**, public macro **RefreshRackLookupButton**.
    - [buttonAddServer.bas](buttonAddServer.bas) → module **buttonAddServer**, public macro **OpenAddServerForm** (**requires `frmAddServer` UserForm**).
-4. To use **Add Server**, build the `frmAddServer` UserForm and paste [frmAddServer_Code.txt](frmAddServer_Code.txt) into its code-behind. Follow the exact control names in [ADD_SERVER_FORM_SETUP.md](ADD_SERVER_FORM_SETUP.md). A UserForm is **not** a standard module. You can skip both `buttonAddServer` and the UserForm if you do not want the Add Server feature.
+4. To use **Add Server**, build the `frmAddServer` UserForm and paste [frmAddServer_Code.txt](frmAddServer_Code.txt) into its code-behind. Follow the exact control names in [ADD_SERVER_FORM_SETUP.md](ADD_SERVER_FORM_SETUP.md). A UserForm is **not** a standard module. If you omit this feature, omit its button/Click handler too.
 5. Under **Microsoft Excel Objects**, replace each sheet's existing `Worksheet_Change` procedure with the appropriate snippet (do **not** put these in standard modules):
    - **Rack Lookup** → [RackLookup_SheetCode.txt](RackLookup_SheetCode.txt).
    - **Server Inventory** → [ServerInventory_SheetCode.txt](ServerInventory_SheetCode.txt).
    - **Rack Info** → [RackInfo_SheetCode.txt](RackInfo_SheetCode.txt).
-   Only one `Worksheet_Change` may exist per worksheet. Preserve other, unrelated sheet event procedures if present.
+   Only one `Worksheet_Change` may exist per worksheet. The Rack Lookup sheet code also contains **ActiveX button Click events**. Preserve other unrelated sheet event procedures.
 6. In **Rack Lookup!E3**, use the **full** dynamic formula from [server-rack-lookup-formula.md](../server-rack-lookup-formula.md). Keep the spill destination E3:I free. It cannot be placed inside a Table.
 7. Run **Debug > Compile VBAProject**, then save and reopen if appropriate. Ensure VBA editor error trapping is **Break on Unhandled Errors**.
 8. Run `SyncRackRegistry` once from **Alt+F8** to register rack IDs that were present before worksheet events were installed; then run `ValidateRackRegistry` once to check duplicates and bad heights.
-9. On **Rack Lookup**, assign the Clear button to **buttonClear.ClearRackLookupButton** and the Refresh button to **buttonRefresh.RefreshRackLookupButton** (right-click a Form Control/shape and select **Assign Macro**). For **Add Server**, use another Form Control button assigned to **buttonAddServer.OpenAddServerForm**. The Add Server form and its required fields are in [ADD_SERVER_FORM_SETUP.md](ADD_SERVER_FORM_SETUP.md).
+9. On **Rack Lookup**, insert three **ActiveX CommandButtons** named **`cmdClear`**, **`cmdRefresh`**, and **`cmdAddServer`**. They use the Click procedures in `RackLookup_SheetCode.txt`; **do not use Assign Macro**. Follow [ACTIVEX_CONTROLS_SETUP.md](ACTIVEX_CONTROLS_SETUP.md) for control names, styling, and testing. The Add Server form fields are in [ADD_SERVER_FORM_SETUP.md](ADD_SERVER_FORM_SETUP.md).
+
+## ActiveX compatibility
+
+Microsoft 365 and Office 2024 disable ActiveX controls by default. Your organization must explicitly permit their use; if the buttons are blocked, **do not change managed security settings**. The old Form Control button macros remain in `buttonClear`, `buttonRefresh`, and `buttonAddServer` for an approved fallback. See [ACTIVEX_CONTROLS_SETUP.md](ACTIVEX_CONTROLS_SETUP.md).
 
 ## Workbook layout — exact names
 
@@ -47,8 +51,8 @@ The Brady printer can generate barcode artwork; the workbook does not generate b
 - Rack synchronization **appends only**. It never deletes racks or modifies existing IDs, heights, or barcodes. The sync is case-insensitive and trims whitespace to avoid duplicate registrations.
 - A mistaken new Rack ID in inventory is still treated as a new rack. Correcting the typo does **not** delete the incorrect registry row: review and remove it manually after confirming it is unused.
 - Changing a formula result, importing data, or deleting an entire table can behave differently from typing inside a table; `Worksheet_Change` is not a general recalculation monitor. Use `SyncRackRegistry` / `RenderRackElevation` manually if needed.
-- The **Add Server** button opens `frmAddServer`, validates the selected registered rack and the full occupied U range, then appends one row to `tblInventory`. On success it displays and highlights the new device using C3 (rack) and C4 (bottom U). It preserves blank hostname/serial/asset values and does not modify other inventory columns. See [ADD_SERVER_FORM_SETUP.md](ADD_SERVER_FORM_SETUP.md).
-- The **Clear** button calls `buttonClear.ClearRackLookupButton`, which reuses `modRackSearch.ClearRackSearch`: it clears only C3, C4, C6, C8, C10, retains the E3 spill formula, redraws the empty rack view, and selects C3. The **Refresh** button calls `buttonRefresh.RefreshRackLookupButton`, which reuses `modRackElevation.RenderRackElevation` without changing search inputs. Manual registry audit: `ValidateRackRegistry`.
+- The **ActiveX Add Server** button opens `frmAddServer`, validates the selected registered rack and the full occupied U range, then appends one row to `tblInventory`. On success it displays and highlights the new device using C3 (rack) and C4 (bottom U). It preserves blank hostname/serial/asset values and does not modify other inventory columns. See [ADD_SERVER_FORM_SETUP.md](ADD_SERVER_FORM_SETUP.md).
+- The **ActiveX Clear** button calls `buttonClear.ClearRackLookupButton`, which reuses `modRackSearch.ClearRackSearch`: it clears only C3, C4, C6, C8, C10, retains the E3 spill formula, redraws the empty rack view, and selects C3. The **ActiveX Refresh** button calls `buttonRefresh.RefreshRackLookupButton`, which reuses `modRackElevation.RenderRackElevation` without changing search inputs. Manual registry audit: `ValidateRackRegistry`.
 
 ## Rendering / validation rules
 
@@ -70,7 +74,7 @@ The Brady printer can generate barcode artwork; the workbook does not generate b
 
 ## Compatibility and limitations
 
-- Requires desktop Microsoft Excel supporting **LET / FILTER / CHOOSE** dynamic arrays and VBA. The registry uses late-bound `Scripting.Dictionary` on Windows.
+- Requires desktop Microsoft Excel supporting **LET / FILTER / CHOOSE** dynamic arrays and VBA; the selected ActiveX worksheet controls also require that ActiveX be permitted by local or organization policy. The registry uses late-bound `Scripting.Dictionary` on Windows.
 - Excel lookup text comparison is case-insensitive. VBA uses trimmed case-insensitive text keys. Store serial numbers / Rack IDs as **Text** if leading zeros are significant.
 - Number strings for U should use the standard form `40` or `U40`. Rack metadata and equipment height must be whole numbers 1–42.
 - This project is source code/documentation, **not a precompiled, tested .xlsm**. The UserForm must be built manually in desktop Excel and compiled there. Complete the verification in [TEST_PLAN.md](TEST_PLAN.md) on a backup workbook before deployment.
