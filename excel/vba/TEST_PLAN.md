@@ -13,7 +13,8 @@ Run on a **backup copy** of the Excel workbook after installing all four standar
 ## Search and display
 
 - [ ] Scan a registered 42U rack into C3. K2:M2 is a filled title bar, K3:M3 is a filled summary bar, K4:M4 contains the headers, K5 is U42 and K46 is U1.
-- [ ] Search a shorter 24U rack. K5 is U24, K28 is U1, and no older rack slots remain below.
+- [ ] Thick black borders surround the rendered panel K2:M46, including the title/status/header, and a black double border runs across K:M exactly between rows 4 and 5.
+- [ ] Search a shorter 24U rack. K5 is U24, K28 is U1, and no older rack slots or thick borders remain below row 28.
 - [ ] C3 alone displays all rows for the rack; C3+C4 highlights a device whose **bottom U** matches C4.
 - [ ] C4 = `U40` and C4 = `40` produce equivalent results for a server stored with either convention.
 - [ ] C6 hostname, C8 serial, C10 asset each locate the right rack; other search inputs clear.
