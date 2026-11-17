@@ -1,6 +1,6 @@
 # Rack workbook regression test plan
 
-Run on a **backup copy** of the Excel workbook after installing all four standard modules, all three worksheet events, and the updated E3 formula. All data used below should be fictitious; keep real inventory out of the public repository.
+Run on a **backup copy** of the Excel workbook after installing all five standard modules, all three worksheet events, and the updated E3 formula. All data used below should be fictitious; keep real inventory out of the public repository.
 
 ## Build and setup
 
@@ -26,6 +26,22 @@ Run on a **backup copy** of the Excel workbook after installing all four standar
 - [ ] A server with a blank hostname, serial number, or asset tag still draws; search formula shows blanks, not zeros.
 - [ ] Rack-height, invalid-placement, and no-match warnings remain visible in the compact summary bar, without using K4 or K5 for messages.
 - [ ] Search an identifier associated with equipment in two different racks: elevation shows a multiple-rack warning instead of choosing arbitrarily.
+
+## Add Server form workflow
+
+- [ ] Add a `Height (U)` column to `tblInventory`; add `modServerEntry`, `buttonAddServer`, and `frmAddServer` with all documented control names. Compile successfully.
+- [ ] Assign a **Form Control** button on Rack Lookup to `buttonAddServer.OpenAddServerForm`. Button opens `frmAddServer` and Cancel leaves inventory unchanged.
+- [ ] With rack ID in C3, open Add Server: the existing registered rack is preselected, but bottom U is blank. With a unique hostname/serial/asset search, the form preselects the matching rack.
+- [ ] Save a fictitious 2U server at **bottom U40** in a 42U rack: the new `tblInventory` row has U Position = 40 and Height (U) = 2; the drawn block fills U40–U41 and highlights both.
+- [ ] Save a 1U server immediately adjacent to an existing 2U server (e.g., bottom U39 next to U40–U41): allowed. Attempt U41 with the 2U in place: rejected; no row added.
+- [ ] A 4U device at bottom U40 in a 42U rack is rejected as out of range. A device exceeding a shorter rack's height is also rejected.
+- [ ] An invalid rack height, unregistered Rack ID, or duplicate Rack ID in `tblRacks` prevents saving.
+- [ ] Existing records with invalid U Position, invalid nonblank Height (U), or a placement exceeding rack capacity block new additions **to that rack** until corrected.
+- [ ] Blank hostname, serial, or asset tag individually is stored as a true blank. When all three are blank, the form asks confirmation; No cancels, Yes permits.
+- [ ] A serial or asset tag with leading zeros remains text, including after save and lookup refresh.
+- [ ] Successful save updates Rack Lookup C3/C4, clears C6/C8/C10, retains E3 lookup formula, refreshes elevation, and highlights the full block.
+- [ ] Existing inventory rows and unrelated table columns remain intact. Save an invalid U, nonnumeric height, or overlapping placement and confirm row count is unchanged.
+- [ ] Test on a backup workbook with an empty table, a full-height rack, and a shorter rack. Verify the form never silently creates an unregistered rack.
 
 ## Equipment positions / validation
 
