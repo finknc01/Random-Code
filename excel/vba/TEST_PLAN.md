@@ -14,7 +14,7 @@ Run on a **backup copy** of the Excel workbook after installing all four standar
 
 - [ ] Scan a registered 42U rack into C3. K7 is U42 and K48 is U1.
 - [ ] Search a shorter 24U rack. K7 is U24, K30 is U1, and no older rack slots remain below.
-- [ ] C3 alone displays all rows for the rack; C3+C4 highlights a device at that **top U**.
+- [ ] C3 alone displays all rows for the rack; C3+C4 highlights a device whose **bottom U** matches C4.
 - [ ] C4 = `U40` and C4 = `40` produce equivalent results for a server stored with either convention.
 - [ ] C6 hostname, C8 serial, C10 asset each locate the right rack; other search inputs clear.
 - [ ] Search a non-existent identifier: no stale rack remains in the drawing.
@@ -25,15 +25,15 @@ Run on a **backup copy** of the Excel workbook after installing all four standar
 
 ## Equipment positions / validation
 
-- [ ] A 2U server with top U40 occupies U40 and U39 as one visually merged block in L:M; K still shows separate U40 and U39 markers. The hostname and serial appear once, not once per U.
-- [ ] A 4U server at U31 spans U31–U28 in one continuous block; search U31 (or its hostname/serial) highlights all four U positions.
+- [ ] A 2U server with bottom U40 occupies U40 and U41 as one visually merged block in L:M; K still shows separate U41 and U40 markers. C4 = U40 highlights both slots; C4 = U41 does not match that server. The hostname and serial appear once, not once per U.
+- [ ] A 4U server with bottom U28 spans U28–U31 in one continuous block; search U28 (or its hostname/serial) highlights all four U positions.
 - [ ] Change a 4U device to 1U, or switch between a 42U and 24U rack: old merges and borders disappear; no stale blocks remain.
 - [ ] Two adjacent 1U or multi-U devices remain distinct blocks and do not merge together.
 - [ ] When a conflict intersects a multi-U device, the conflicted U is red and unmerged; any remaining uninterrupted portion of the device is still labeled.
 - [ ] Two devices claiming the same U show red conflict rows.
 - [ ] Invalid equipment U (0, 43, text) is counted and not drawn.
 - [ ] Nonblank invalid equipment Height (U) (0, 43, text, 1.5) is counted and not drawn; a **blank** height draws 1U.
-- [ ] A device extending below U1 is counted but not drawn.
+- [ ] A device whose height extends above the rack's last U (e.g., a 4U device with bottom U40 in a 42U rack) is counted but not drawn.
 - [ ] Rack Height 42 is valid. Rack Height blank defaults to 42 with a note.
 - [ ] Rack Height 43, 0, nonnumeric, fractional values trigger registry validation and drawing warning; no rack renders above 42U.
 - [ ] Duplicate Rack IDs differing only by case/whitespace are reported by `ValidateRackRegistry`.
