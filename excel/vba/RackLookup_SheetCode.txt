@@ -1,4 +1,6 @@
-' Replace only the Worksheet_Change code in Sheet (Rack Lookup).
+' Rack Lookup sheet object: retain Worksheet_Change and handle ActiveX buttons.
+' Control names on the worksheet: cmdClear, cmdRefresh, cmdAddServer.
+' Paste into Microsoft Excel Objects > Sheet (Rack Lookup), NOT a standard module.
 Option Explicit
 
 Private Sub Worksheet_Change(ByVal Target As Range)
@@ -13,4 +15,19 @@ Private Sub Worksheet_Change(ByVal Target As Range)
 HandleError:
     MsgBox "Rack Lookup event error (" & Err.Number & "): " & _
            Err.Description, vbExclamation
+End Sub
+
+' These Click events run from the ActiveX CommandButtons on Rack Lookup.
+' Existing button modules remain the reusable entry points.
+
+Private Sub cmdClear_Click()
+    buttonClear.ClearRackLookupButton
+End Sub
+
+Private Sub cmdRefresh_Click()
+    buttonRefresh.RefreshRackLookupButton
+End Sub
+
+Private Sub cmdAddServer_Click()
+    buttonAddServer.OpenAddServerForm
 End Sub
