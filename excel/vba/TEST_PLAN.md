@@ -21,6 +21,8 @@ Run on a **backup copy** of the Excel workbook after installing all four standar
 - [ ] Search a non-existent identifier: the summary shows the message in the filled K3:M3 bar and no stale rack remains in the drawing.
 - [ ] Paste C3:C4 (both nonblank) at once; both remain. Paste multiple nonblank search fields; priority is Hostname > Serial > Asset > Rack.
 - [ ] Delete a search input: remaining non-conflicting search inputs are not accidentally cleared.
+- [ ] Assign the **Clear** button to `buttonClear.ClearRackLookupButton`. Click it after populating search fields; C3, C4, C6, C8, and C10 become blank, the E3 formula remains in place, the elevation clears, and focus returns to C3.
+- [ ] Assign the **Refresh** button to `buttonRefresh.RefreshRackLookupButton`. Click it with an active rack or server search; the rack redraws without clearing or changing any search values.
 - [ ] A server with a blank hostname, serial number, or asset tag still draws; search formula shows blanks, not zeros.
 - [ ] Rack-height, invalid-placement, and no-match warnings remain visible in the compact summary bar, without using K4 or K5 for messages.
 - [ ] Search an identifier associated with equipment in two different racks: elevation shows a multiple-rack warning instead of choosing arbitrarily.
