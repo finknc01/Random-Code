@@ -1,7 +1,7 @@
 Option Explicit
 
-' Assigned to the Refresh button on Rack Lookup.
-' Redraws the rack using the existing search fields without clearing them.
+' Called by Rack Lookup's ActiveX cmdRefresh_Click event.
+' Redraws without changing search fields; also usable manually.
 Public Sub RefreshRackLookupButton()
     modRackElevation.RenderRackElevation
 End Sub
