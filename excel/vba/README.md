@@ -1,6 +1,6 @@
 # Server rack inventory — VBA installation and maintenance
 
-This project consists of three Excel worksheets, four standard VBA modules, three worksheet events, and one dynamic lookup formula.
+This project consists of three Excel worksheets, four core standard VBA modules, two optional button modules, three worksheet events, and one dynamic lookup formula.
 
 ## Installation — desktop Excel
 
@@ -11,6 +11,9 @@ This project consists of three Excel worksheets, four standard VBA modules, thre
    - [modRackSearch.bas](modRackSearch.bas) — exclusive search inputs, including multi-cell paste.
    - [modRackRegistry.bas](modRackRegistry.bas) — automatic registration and manual rack audits.
    - [modRackElevation.bas](modRackElevation.bas) — renders 1–42U elevation.
+   If you have Clear and Refresh buttons, also paste these into standard modules named exactly as shown:
+   - [buttonClear.bas](buttonClear.bas) → module **buttonClear**, public macro **ClearRackLookupButton**.
+   - [buttonRefresh.bas](buttonRefresh.bas) → module **buttonRefresh**, public macro **RefreshRackLookupButton**.
 4. Under **Microsoft Excel Objects**, replace each sheet's existing `Worksheet_Change` procedure with the appropriate snippet (do **not** put these in standard modules):
    - **Rack Lookup** → [RackLookup_SheetCode.txt](RackLookup_SheetCode.txt).
    - **Server Inventory** → [ServerInventory_SheetCode.txt](ServerInventory_SheetCode.txt).
@@ -19,6 +22,7 @@ This project consists of three Excel worksheets, four standard VBA modules, thre
 5. In **Rack Lookup!E3**, use the **full** dynamic formula from [server-rack-lookup-formula.md](../server-rack-lookup-formula.md). Keep the spill destination E3:I free. It cannot be placed inside a Table.
 6. Run **Debug > Compile VBAProject**, then save and reopen if appropriate. Ensure VBA editor error trapping is **Break on Unhandled Errors**.
 7. Run `SyncRackRegistry` once from **Alt+F8** to register rack IDs that were present before worksheet events were installed; then run `ValidateRackRegistry` once to check duplicates and bad heights.
+8. On **Rack Lookup**, assign the Clear button to **buttonClear.ClearRackLookupButton** and the Refresh button to **buttonRefresh.RefreshRackLookupButton** (right-click a Form Control/shape and select **Assign Macro**). If the buttons are ActiveX CommandButtons, call those public procedures from the buttons' worksheet Click events instead.
 
 ## Workbook layout — exact names
 
@@ -40,7 +44,7 @@ The Brady printer can generate barcode artwork; the workbook does not generate b
 - Rack synchronization **appends only**. It never deletes racks or modifies existing IDs, heights, or barcodes. The sync is case-insensitive and trims whitespace to avoid duplicate registrations.
 - A mistaken new Rack ID in inventory is still treated as a new rack. Correcting the typo does **not** delete the incorrect registry row: review and remove it manually after confirming it is unused.
 - Changing a formula result, importing data, or deleting an entire table can behave differently from typing inside a table; `Worksheet_Change` is not a general recalculation monitor. Use `SyncRackRegistry` / `RenderRackElevation` manually if needed.
-- Clear Search button macro: `ClearRackSearch`. Manual redraw: `RenderRackElevation`. Manual registry audit: `ValidateRackRegistry`.
+- The **Clear** button calls `buttonClear.ClearRackLookupButton`, which reuses `modRackSearch.ClearRackSearch`: it clears only C3, C4, C6, C8, C10, retains the E3 spill formula, redraws the empty rack view, and selects C3. The **Refresh** button calls `buttonRefresh.RefreshRackLookupButton`, which reuses `modRackElevation.RenderRackElevation` without changing search inputs. Manual registry audit: `ValidateRackRegistry`.
 
 ## Rendering / validation rules
 
