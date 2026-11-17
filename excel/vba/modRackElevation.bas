@@ -43,7 +43,7 @@ Public Sub RenderRackElevation()
     ws.Range("L7:M126").UnMerge
     With ws.Range("K2:M126")
         .ClearContents
-        .Interior.Color = RGB(255, 255, 255)
+        .Interior.Pattern = xlNone
         .Font.Color = RGB(40, 48, 58)
         .Font.Bold = False
         .Borders.LineStyle = xlNone
