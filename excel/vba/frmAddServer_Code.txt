@@ -1,0 +1,144 @@
+Option Explicit
+
+' Code behind VBA UserForm named frmAddServer.
+' Create the controls listed in ADD_SERVER_FORM_SETUP.md before pasting.
+
+Private mRackHeight As Long
+
+Private Sub UserForm_Initialize()
+    Dim rackIds As Collection, rackId As Variant
+    Dim suggestion As String
+
+    On Error GoTo InitError
+    Me.Caption = "Add Server | RackScan"
+    Me.cboRack.Style = fmStyleDropDownList
+    Me.cmdSave.Default = True
+    Me.cmdCancel.Cancel = True
+    Me.txtHeightU.Value = "1"
+    Me.lblMessage.Caption = ""
+    Me.lblPlacement.Caption = "Select a rack and enter the bottom U."
+
+    Set rackIds = modServerEntry.RegisteredRackIds()
+    For Each rackId In rackIds
+        Me.cboRack.AddItem CStr(rackId)
+    Next rackId
+
+    suggestion = modServerEntry.SuggestedRackId()
+    If Len(suggestion) > 0 Then Me.cboRack.Value = suggestion
+
+    UpdatePlacementPreview
+    Exit Sub
+
+InitError:
+    Me.lblMessage.Caption = "Cannot load rack list: " & Err.Description
+    Me.cmdSave.Enabled = False
+End Sub
+
+Private Sub cboRack_Change()
+    Dim canonical As String, reason As String
+
+    On Error GoTo HandleError
+    mRackHeight = modServerEntry.RackCapacity( _
+        modRackData.TextValue(Me.cboRack.Value), canonical, reason)
+    If mRackHeight = 0 Then
+        Me.lblMessage.Caption = reason
+    Else
+        Me.lblMessage.Caption = ""
+    End If
+    UpdatePlacementPreview
+    Exit Sub
+
+HandleError:
+    mRackHeight = 0
+    Me.lblMessage.Caption = "Rack selection error: " & Err.Description
+    UpdatePlacementPreview
+End Sub
+
+Private Sub txtUPosition_Change()
+    UpdatePlacementPreview
+End Sub
+
+Private Sub txtHeightU_Change()
+    UpdatePlacementPreview
+End Sub
+
+Private Sub UpdatePlacementPreview()
+    Dim bottomU As Long, heightU As Long, topU As Long
+
+    If mRackHeight = 0 Then
+        Me.lblPlacement.Caption = "Select a registered rack with a valid height."
+        Exit Sub
+    End If
+
+    bottomU = modRackData.ParseU( _
+        modRackData.TextValue(Me.txtUPosition.Value))
+    heightU = modRackData.ParseU( _
+        modRackData.TextValue(Me.txtHeightU.Value), False)
+
+    If bottomU = 0 Or heightU = 0 Then
+        Me.lblPlacement.Caption = "Enter a bottom U and height from 1 to 42."
+        Exit Sub
+    End If
+
+    topU = bottomU + heightU - 1
+    If topU > mRackHeight Then
+        Me.lblPlacement.Caption = "Out of range: U" & topU & _
+                                  " exceeds this " & mRackHeight & "U rack."
+    Else
+        Me.lblPlacement.Caption = "Occupies U" & bottomU & "-U" & topU & _
+                                  " (rack capacity: " & mRackHeight & "U)"
+    End If
+End Sub
+
+Private Sub cmdSave_Click()
+    Dim message As String, rackId As String, bottomU As Long
+
+    On Error GoTo SaveError
+
+    If Len(modRackData.TextValue(Me.txtHostname.Value)) = 0 And _
+       Len(modRackData.TextValue(Me.txtSerial.Value)) = 0 And _
+       Len(modRackData.TextValue(Me.txtAssetTag.Value)) = 0 Then
+        If MsgBox("Hostname, Serial Number, and Asset Tag are all blank." & _
+                  vbCrLf & "Add an unidentified server anyway?", _
+                  vbQuestion + vbYesNo + vbDefaultButton2, _
+                  "Confirm Unidentified Server") <> vbYes Then Exit Sub
+    End If
+
+    Me.cmdSave.Enabled = False
+    Me.lblMessage.Caption = ""
+
+    If Not modServerEntry.TryAddServer( _
+            modRackData.TextValue(Me.cboRack.Value), _
+            modRackData.TextValue(Me.txtUPosition.Value), _
+            modRackData.TextValue(Me.txtHeightU.Value), _
+            modRackData.TextValue(Me.txtHostname.Value), _
+            modRackData.TextValue(Me.txtSerial.Value), _
+            modRackData.TextValue(Me.txtAssetTag.Value), message) Then
+        Me.lblMessage.Caption = message
+        Me.cmdSave.Enabled = True
+        Exit Sub
+    End If
+
+    rackId = modRackData.TextValue(Me.cboRack.Value)
+    bottomU = modRackData.ParseU(modRackData.TextValue(Me.txtUPosition.Value))
+    Unload Me
+
+    On Error GoTo RefreshError
+    modServerEntry.ShowAddedServer rackId, bottomU
+    MsgBox message, vbInformation, "Server Added"
+    Exit Sub
+
+RefreshError:
+    MsgBox message & vbCrLf & vbCrLf & _
+           "The server was saved, but the lookup could not refresh: " & _
+           Err.Description, vbExclamation, "Server Added - Refresh Issue"
+    Exit Sub
+
+SaveError:
+    Me.lblMessage.Caption = "Add Server error: " & Err.Description
+    Me.cmdSave.Enabled = True
+End Sub
+
+Private Sub cmdCancel_Click()
+    Unload Me
+End Sub
