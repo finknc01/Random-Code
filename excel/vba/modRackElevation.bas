@@ -1,9 +1,9 @@
 Option Explicit
 
-Private Const FIRST_UNIT_ROW As Long = 7
+Private Const FIRST_UNIT_ROW As Long = 5
 
-' Draws the selected rack in Rack Lookup!K2:M48 (42U maximum).
-' K2:M126 is cleared to remove remnants of older, taller displays.
+' Draws a compact title/status area in K2:M3 and column headers in K4:M4.
+' Up to 42 rack units occupy K5:M46; K2:M126 is cleared each redraw.
 Public Sub RenderRackElevation()
     Dim ws As Worksheet, inventory As ListObject, entry As ListRow
     Dim rackCol As Long, uCol As Long, hostCol As Long
@@ -18,7 +18,7 @@ Public Sub RenderRackElevation()
     Dim displayRow As Long, deviceCount As Long, skipped As Long, hitCount As Long
     Dim matchThisDevice As Boolean, anyMatch As Boolean, moreThanOneRack As Boolean
     Dim hostname As String, serialNumber As String, rawHeight As String
-    Dim rackUnits As Long, heightNote As String
+    Dim rackUnits As Long, heightNote As String, statusMessage As String
     Dim rowCells As Range
     Dim priorEvents As Boolean, priorScreen As Boolean
 
@@ -39,8 +39,8 @@ Public Sub RenderRackElevation()
     assetCol = modRackData.ColumnIndex(inventory, "Asset Tag")
     heightCol = modRackData.ColumnIndex(inventory, "Height (U)", False)
 
-    ' Unmerge the device blocks from the previous drawing before clearing.
-    ws.Range("L7:M126").UnMerge
+    ' Remove previous title/status and multi-U merges before rebuilding.
+    ws.Range("K2:M126").UnMerge
     With ws.Range("K2:M126")
         .ClearContents
         .Interior.Pattern = xlNone
@@ -51,8 +51,24 @@ Public Sub RenderRackElevation()
     ws.Columns("K").ColumnWidth = 9
     ws.Columns("L").ColumnWidth = 28
     ws.Columns("M").ColumnWidth = 23
+
+    ' Two-row, filled summary; column headings start immediately below.
+    With ws.Range("K2:M2")
+        .Merge
+        .Interior.Color = RGB(35, 53, 74)
+        .Font.Color = RGB(255, 255, 255)
+        .Font.Bold = True
+        .Font.Size = 11
+        .VerticalAlignment = xlVAlignCenter
+    End With
+    With ws.Range("K3:M3")
+        .Merge
+        .Interior.Color = RGB(226, 236, 245)
+        .Font.Color = RGB(47, 64, 80)
+        .Font.Size = 10
+        .VerticalAlignment = xlVAlignCenter
+    End With
     ws.Range("K2").Value2 = "RACK ELEVATION"
-    ws.Range("K2").Font.Bold = True
 
     selectedRack = modRackData.TextValue(ws.Range("C3").Value2)
     uSearch = modRackData.TextValue(ws.Range("C4").Value2)
@@ -92,8 +108,7 @@ Public Sub RenderRackElevation()
         Next entry
 
         If moreThanOneRack Then
-            ws.Range("K3").Value2 = "Matches found in multiple racks."
-            ws.Range("K4").Value2 = "Search a rack or use a unique device ID."
+            ws.Range("K3").Value2 = "Matches found in multiple racks. Search a rack or use a unique device ID."
             GoTo CleanExit
         ElseIf Not anyMatch Then
             ws.Range("K3").Value2 = "No matching server found."
@@ -180,22 +195,25 @@ Public Sub RenderRackElevation()
         End If
     Next entry
 
-    ws.Range("K3").Value2 = selectedRack
-    ws.Range("L3").Value2 = rackUnits & "U rack | " & deviceCount & " records"
-    If Len(heightNote) > 0 Then ws.Range("K4").Value2 = heightNote
-
-    If skipped > 0 Then
-        ws.Range("M3").Value2 = skipped & " invalid U/height records"
-    ElseIf Len(uSearch) > 0 And requestedU = 0 And searchCol = 0 Then
-        ws.Range("M3").Value2 = "Invalid U search (1-42)"
-    ElseIf (searchCol > 0 Or Len(uSearch) > 0) And hitCount = 0 Then
-        ws.Range("M3").Value2 = "No highlighted match"
+    ws.Range("K2").Value2 = "RACK ELEVATION  |  " & selectedRack
+    statusMessage = rackUnits & "U rack  |  " & deviceCount & " records"
+    If Len(heightNote) > 0 Then
+        statusMessage = statusMessage & "  |  " & heightNote
     End If
 
-    ws.Range("K6").Value2 = "U"
-    ws.Range("L6").Value2 = "Hostname"
-    ws.Range("M6").Value2 = "Serial Number"
-    With ws.Range("K6:M6")
+    If skipped > 0 Then
+        statusMessage = statusMessage & "  |  " & skipped & " invalid U/height records"
+    ElseIf Len(uSearch) > 0 And requestedU = 0 And searchCol = 0 Then
+        statusMessage = statusMessage & "  |  Invalid U search (1-42)"
+    ElseIf (searchCol > 0 Or Len(uSearch) > 0) And hitCount = 0 Then
+        statusMessage = statusMessage & "  |  No highlighted match"
+    End If
+    ws.Range("K3").Value2 = statusMessage
+
+    ws.Range("K4").Value2 = "U"
+    ws.Range("L4").Value2 = "Hostname"
+    ws.Range("M4").Value2 = "Serial Number"
+    With ws.Range("K4:M4")
         .Font.Bold = True
         .Interior.Color = RGB(40, 54, 68)
         .Font.Color = RGB(255, 255, 255)
