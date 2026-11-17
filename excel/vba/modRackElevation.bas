@@ -262,6 +262,7 @@ Public Sub RenderRackElevation()
     Next u
 
     DrawDeviceBlocks ws, slotOwner, rackUnits
+    FrameRackDisplay ws, FIRST_UNIT_ROW + rackUnits - 1
 
 CleanExit:
     Application.EnableEvents = priorEvents
@@ -320,6 +321,34 @@ Private Sub FrameDeviceBlock(ByVal ws As Worksheet, _
         .Borders(xlEdgeRight).LineStyle = xlContinuous
         .Borders(xlInsideVertical).LineStyle = xlContinuous
         .Borders.Color = RGB(113, 143, 172)
+    End With
+End Sub
+
+' Add the rack enclosure after device borders so its black lines stay visible.
+' The last row is dynamic: row 46 for a 42U rack, row 28 for a 24U rack.
+Private Sub FrameRackDisplay(ByVal ws As Worksheet, _
+                             ByVal lastUnitRow As Long)
+    Dim panel As Range
+    Dim edge As Variant
+
+    Set panel = ws.Range("K2:M" & lastUnitRow)
+    For Each edge In Array(xlEdgeTop, xlEdgeBottom, _
+                           xlEdgeLeft, xlEdgeRight)
+        With panel.Borders(edge)
+            .LineStyle = xlContinuous
+            .Color = RGB(0, 0, 0)
+            .Weight = xlThick
+        End With
+    Next edge
+
+    ' Separate the column headings (row 4) from the first U slot (row 5).
+    With ws.Range("K4:M4").Borders(xlEdgeBottom)
+        .Color = RGB(0, 0, 0)
+        .LineStyle = xlDouble
+    End With
+    With ws.Range("K5:M5").Borders(xlEdgeTop)
+        .Color = RGB(0, 0, 0)
+        .LineStyle = xlDouble
     End With
 End Sub
 
