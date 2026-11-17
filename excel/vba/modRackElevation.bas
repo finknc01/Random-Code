@@ -126,7 +126,8 @@ Public Sub RenderRackElevation()
             serialNumber = modRackData.RowText(entry, serialCol)
             If Len(hostname) = 0 Then hostname = "(hostname blank)"
 
-            topU = modRackData.ParseU(modRackData.RowText(entry, uCol))
+            ' U Position identifies the bottom (lowest) rack unit of a server.
+            bottomU = modRackData.ParseU(modRackData.RowText(entry, uCol))
             deviceHeight = 1
             If heightCol > 0 Then
                 rawHeight = modRackData.RowText(entry, heightCol)
@@ -135,10 +136,11 @@ Public Sub RenderRackElevation()
                 End If
             End If
 
+            ' Equipment extends upward from its listed bottom U.
             ' Invalid heights are never silently interpreted as 1U.
-            bottomU = topU - deviceHeight + 1
-            If topU < 1 Or topU > rackUnits Or _
-               deviceHeight < 1 Or bottomU < 1 Then
+            topU = bottomU + deviceHeight - 1
+            If bottomU < 1 Or bottomU > rackUnits Or _
+               deviceHeight < 1 Or topU > rackUnits Then
                 skipped = skipped + 1
             Else
                 matchThisDevice = False
@@ -147,8 +149,8 @@ Public Sub RenderRackElevation()
                         modRackData.RowText(entry, searchCol), _
                         searchValue, vbTextCompare) = 0)
                 ElseIf Len(uSearch) > 0 And requestedU > 0 Then
-                    ' Search and E3 both match the TOP position of a device.
-                    matchThisDevice = (topU = requestedU)
+                    ' Search and E3 both match the BOTTOM position of a device.
+                    matchThisDevice = (bottomU = requestedU)
                 End If
                 If matchThisDevice Then hitCount = hitCount + 1
 
