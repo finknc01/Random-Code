@@ -1,6 +1,6 @@
 # Server rack inventory lookup formula
 
-Full `LET` + `CHOOSE` + `FILTER` formula for **Rack Lookup!E3**, retaining the original five-column layout. This version trims inventory text and treats `40` and `U40` as the same top-of-device U position. It follows the same search priority as the rack elevation.
+Full `LET` + `CHOOSE` + `FILTER` formula for **Rack Lookup!E3**, retaining the original five-column layout. This version trims inventory text and treats `40` and `U40` as the same bottom-of-device U position. It follows the same search priority as the rack elevation.
 
 ## Layout
 
@@ -71,12 +71,12 @@ Full `LET` + `CHOOSE` + `FILTER` formula for **Rack Lookup!E3**, retaining the o
 ## Search behavior
 
 - C3 only: all equipment assigned to that rack.
-- C3 + C4: matching equipment whose **topmost occupied U** equals C4; `U40` and `40` are equivalent.
+- C3 + C4: matching equipment whose **bottom occupied U** equals C4; `U40` and `40` are equivalent.
 - C6, C8, or C10: match hostname, serial, or asset respectively; case-insensitive Excel text equality.
 - Search precedence if several inputs remain populated: hostname, serial number, asset tag, rack/U.
 - Leading/trailing spaces in inventory search fields are ignored.
 - Missing hostname, serial number, and asset values in inventory remain visually blank.
-- For multi-U equipment, C4 matches the **topmost U**, not every occupied position. The graphical elevation shows each occupied U.
+- For multi-U equipment, C4 matches the **bottom U** entered in inventory, not every occupied position. The graphical elevation extends upward by `Height (U)` to show each occupied U.
 - Rack heights can be at most **42U**. Equipment with invalid heights or positions may appear in the table search results but are excluded (with warning) from physical rack rendering.
 
 ## Validation notes
