@@ -1,6 +1,6 @@
 # Add Server — UserForm setup (desktop Excel)
 
-This workflow adds a server from **Rack Lookup**, without typing directly into `tblInventory`. It uses a VBA **UserForm** and one ordinary **Form Control** button on the worksheet (no ActiveX worksheet button needed). Excel's UserForm controls are the built-in MSForms controls.
+This workflow adds a server from **Rack Lookup**, without typing directly into `tblInventory`. It uses a VBA **UserForm** opened by the **ActiveX Add Server CommandButton** on Rack Lookup. The UserForm itself contains standard Microsoft Forms (MSForms) controls.
 
 ## Before you start
 
@@ -20,7 +20,7 @@ In Excel press **Alt+F11**. In the Project Explorer, right-click your workbook, 
 
 For an existing module, open it and replace its contents only if you intend to update that particular module. **Do not paste UserForm event code into a standard module.**
 
-The `OpenAddServerForm` macro in `buttonAddServer` is the entry point for your worksheet button. `modServerEntry` is responsible for validation, collision detection, append/rollback, and refreshing the Rack Lookup.
+The `OpenAddServerForm` routine in `buttonAddServer` is called from the worksheet's ActiveX `cmdAddServer_Click` handler. `modServerEntry` is responsible for validation, collision detection, append/rollback, and refreshing the Rack Lookup.
 
 ## 2. Build the UserForm
 
@@ -62,15 +62,11 @@ To make it feel polished, try `lblPlacement.BackColor` = a pale blue and `lblMes
 
 The form fills its Rack ID dropdown from existing `tblRacks`. When possible it preselects the rack shown on Rack Lookup, including a rack found from a hostname/serial/asset search. It does **not** automatically select a U Position from an existing server: each new placement must be chosen explicitly.
 
-## 4. Add the button to Rack Lookup
+## 4. Add the ActiveX button to Rack Lookup
 
-1. Return to Excel and select **Rack Lookup**.
-2. Developer > **Insert > Form Controls > Button** (choose **Form Controls**, *not* an ActiveX worksheet CommandButton).
-3. Draw the button next to your existing Clear and Refresh buttons.
-4. In **Assign Macro**, select **OpenAddServerForm** (from module `buttonAddServer`).
-5. Right-click the button > **Edit Text** > `Add Server`.
+Use **Developer > Insert > ActiveX Controls > Command Button** on Rack Lookup and set **`(Name) = cmdAddServer`**, **`Caption = Add Server`** while in Design Mode. Its click event must live in the **Rack Lookup worksheet object**, together with `cmdClear_Click` and `cmdRefresh_Click`. The new Click handler calls `buttonAddServer.OpenAddServerForm`.
 
-The native Form Control button retains the pressed-click animation you preferred. The detailed entry form uses UserForm controls, which is separate from the Form-vs-ActiveX choice for worksheet buttons.
+See [ACTIVEX_CONTROLS_SETUP.md](ACTIVEX_CONTROLS_SETUP.md) for installing and styling all three ActiveX buttons, preserving the existing Worksheet_Change event, turning off Design Mode, and testing. ActiveX controls must be permitted by your organization's Office configuration.
 
 ## Behavior and safety
 
@@ -83,6 +79,6 @@ The native Form Control button retains the pressed-click animation you preferred
 - **On cancel or validation failure:** no inventory row is added. A write-time failure removes its newly created row.
 - **Not part of this version:** editing an existing server, deleting a server, creating racks, or recording network connections. Those can be added as separate workflows later.
 
-If UserForms are restricted by your organization's policy, stop and use the approved controls rather than changing Office security settings. Never upload real hostnames, serial numbers, or rack inventory to a public repository.
+If ActiveX controls or UserForms are restricted by your organization's policy, stop and use the approved controls rather than changing Office security settings. Never upload real hostnames, serial numbers, or rack inventory to a public repository.
 
 Finally, walk through the checks in [TEST_PLAN.md](TEST_PLAN.md) on your backup workbook.
