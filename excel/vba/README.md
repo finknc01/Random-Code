@@ -26,7 +26,7 @@ This project consists of three Excel worksheets, four standard VBA modules, thre
 | --- | --- | --- |
 | **Server Inventory** | `tblInventory` | `Rack ID`, `U Position`, `Hostname`, `Serial Number`, `Asset Tag`; optional `Height (U)` |
 | **Rack Info** | `tblRacks` | `Rack ID`, `Barcode`, `Rack Height` |
-| **Rack Lookup** | none required | C3 Rack ID, C4 U position, C6 Hostname, C8 Serial Number, C10 Asset Tag; E2:I2 results headers, E3 spill formula, K2:M48 rack elevation |
+| **Rack Lookup** | none required | C3 Rack ID, C4 U position, C6 Hostname, C8 Serial Number, C10 Asset Tag; E2:I2 results headers, E3 spill formula, compact title/status in K2:M3, column headers K4:M4, rack elevation K5:M46 |
 
 The `Height (U)` field describes **equipment height**, while `Rack Height` describes the **rack height**. Rack Height is blank for a newly registered rack, which means **42U** by default. The rack height must be an integer from **1 through 42**, never over 42.
 
@@ -44,7 +44,7 @@ The Brady printer can generate barcode artwork; the workbook does not generate b
 
 ## Rendering / validation rules
 
-- Visualization uses **Rack Lookup!K2:M48** for a 42U rack; code also clears K2:M126 so older taller diagrams are removed. Do not store other data in that reserved area.
+- Visualization uses a two-row, filled title/status area in **Rack Lookup!K2:M3** (dark title, pale-blue summary), column headings in **K4:M4**, and a 42U rack in **K5:M46**. Shorter racks use fewer rows; code clears K2:M126 on every redraw, including previous merged blocks. Do not store other data in that reserved area.
 - `U Position` is the **bottom (lowest) U** a server occupies. Equipment fills upward: a 2U server at U40 occupies U40–U41, while a 4U server at U28 occupies U28–U31. `40` and `U40` work equivalently. Rack+U search matches the **bottom U** stored in inventory and highlights the entire device block.
 - Equipment `Height (U)` may be omitted or left blank; then it is treated as 1U. A nonblank invalid height is counted and **not** drawn, rather than silently defaulted to 1U.
 - Equipment spanning multiple U positions is drawn as one continuous block: hostname and serial cells are vertically merged over the occupied units, while column K retains individual U labels. A matched device highlights across its full height. The display unmerges old blocks before each redraw (including when switching to a shorter rack).
