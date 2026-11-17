@@ -10,6 +10,15 @@ Run on a **backup copy** of the Excel workbook after installing all five standar
 - [ ] Excel tables contain only real records, not a whole worksheet.
 - [ ] Run `SyncRackRegistry` once with Alt+F8; then run `ValidateRackRegistry`.
 
+## ActiveX controls and compatibility
+
+- [ ] Confirm the organization's Excel configuration permits ActiveX controls. If controls are disabled, **stop** and follow the approved IT policy; do not change Trust Center settings.
+- [ ] Add exactly three ActiveX CommandButtons on Rack Lookup with names `cmdClear`, `cmdRefresh`, `cmdAddServer`. Design Mode must be OFF when testing clicks.
+- [ ] `RackLookup_SheetCode.txt` handlers are pasted into **Sheet (Rack Lookup)**, not a standard module; exactly one `Worksheet_Change` remains.
+- [ ] Buttons have consistent font/size, distinct BackColor, readable ForeColor, and visible press feedback; `TakeFocusOnClick` and `TabStop` are False.
+- [ ] After testing the new controls, old Form Control buttons can be removed manually; the old `button*.bas` entry points remain intact.
+- [ ] Close and reopen the backup workbook; all three controls still initialize and operate normally.
+
 ## Search and display
 
 - [ ] Scan a registered 42U rack into C3. K2:M2 is a filled title bar, K3:M3 is a filled summary bar, K4:M4 contains the headers, K5 is U42 and K46 is U1.
@@ -21,8 +30,8 @@ Run on a **backup copy** of the Excel workbook after installing all five standar
 - [ ] Search a non-existent identifier: the summary shows the message in the filled K3:M3 bar and no stale rack remains in the drawing.
 - [ ] Paste C3:C4 (both nonblank) at once; both remain. Paste multiple nonblank search fields; priority is Hostname > Serial > Asset > Rack.
 - [ ] Delete a search input: remaining non-conflicting search inputs are not accidentally cleared.
-- [ ] Assign the **Clear** button to `buttonClear.ClearRackLookupButton`. Click it after populating search fields; C3, C4, C6, C8, and C10 become blank, the E3 formula remains in place, the elevation clears, and focus returns to C3.
-- [ ] Assign the **Refresh** button to `buttonRefresh.RefreshRackLookupButton`. Click it with an active rack or server search; the rack redraws without clearing or changing any search values.
+- [ ] Create ActiveX control **`cmdClear`** on Rack Lookup with a `cmdClear_Click` handler calling `buttonClear.ClearRackLookupButton`. Click it after populating search fields; C3, C4, C6, C8, and C10 become blank, the E3 formula remains in place, the elevation clears, and focus returns to C3.
+- [ ] Create ActiveX control **`cmdRefresh`** on Rack Lookup with a `cmdRefresh_Click` handler calling `buttonRefresh.RefreshRackLookupButton`. Click it with an active rack or server search; the rack redraws without clearing or changing any search values.
 - [ ] A server with a blank hostname, serial number, or asset tag still draws; search formula shows blanks, not zeros.
 - [ ] Rack-height, invalid-placement, and no-match warnings remain visible in the compact summary bar, without using K4 or K5 for messages.
 - [ ] Search an identifier associated with equipment in two different racks: elevation shows a multiple-rack warning instead of choosing arbitrarily.
@@ -30,7 +39,7 @@ Run on a **backup copy** of the Excel workbook after installing all five standar
 ## Add Server form workflow
 
 - [ ] Add a `Height (U)` column to `tblInventory`; add `modServerEntry`, `buttonAddServer`, and `frmAddServer` with all documented control names. Compile successfully.
-- [ ] Assign a **Form Control** button on Rack Lookup to `buttonAddServer.OpenAddServerForm`. Button opens `frmAddServer` and Cancel leaves inventory unchanged.
+- [ ] Create ActiveX control **`cmdAddServer`** with the `cmdAddServer_Click` handler in the Rack Lookup sheet object calling `buttonAddServer.OpenAddServerForm`. Button opens `frmAddServer` and Cancel leaves inventory unchanged.
 - [ ] With rack ID in C3, open Add Server: the existing registered rack is preselected, but bottom U is blank. With a unique hostname/serial/asset search, the form preselects the matching rack.
 - [ ] Save a fictitious 2U server at **bottom U40** in a 42U rack: the new `tblInventory` row has U Position = 40 and Height (U) = 2; the drawn block fills U40–U41 and highlights both.
 - [ ] Save a 1U server immediately adjacent to an existing 2U server (e.g., bottom U39 next to U40–U41): allowed. Attempt U41 with the 2U in place: rejected; no row added.
