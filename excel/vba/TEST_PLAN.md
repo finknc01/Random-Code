@@ -12,15 +12,16 @@ Run on a **backup copy** of the Excel workbook after installing all four standar
 
 ## Search and display
 
-- [ ] Scan a registered 42U rack into C3. K7 is U42 and K48 is U1.
-- [ ] Search a shorter 24U rack. K7 is U24, K30 is U1, and no older rack slots remain below.
+- [ ] Scan a registered 42U rack into C3. K2:M2 is a filled title bar, K3:M3 is a filled summary bar, K4:M4 contains the headers, K5 is U42 and K46 is U1.
+- [ ] Search a shorter 24U rack. K5 is U24, K28 is U1, and no older rack slots remain below.
 - [ ] C3 alone displays all rows for the rack; C3+C4 highlights a device whose **bottom U** matches C4.
 - [ ] C4 = `U40` and C4 = `40` produce equivalent results for a server stored with either convention.
 - [ ] C6 hostname, C8 serial, C10 asset each locate the right rack; other search inputs clear.
-- [ ] Search a non-existent identifier: no stale rack remains in the drawing.
+- [ ] Search a non-existent identifier: the summary shows the message in the filled K3:M3 bar and no stale rack remains in the drawing.
 - [ ] Paste C3:C4 (both nonblank) at once; both remain. Paste multiple nonblank search fields; priority is Hostname > Serial > Asset > Rack.
 - [ ] Delete a search input: remaining non-conflicting search inputs are not accidentally cleared.
 - [ ] A server with a blank hostname, serial number, or asset tag still draws; search formula shows blanks, not zeros.
+- [ ] Rack-height, invalid-placement, and no-match warnings remain visible in the compact summary bar, without using K4 or K5 for messages.
 - [ ] Search an identifier associated with equipment in two different racks: elevation shows a multiple-rack warning instead of choosing arbitrarily.
 
 ## Equipment positions / validation
