@@ -66,7 +66,7 @@ The form fills its Rack ID dropdown from existing `tblRacks`. When possible it p
 
 Use **Developer > Insert > ActiveX Controls > Command Button** on Rack Lookup and set **`(Name) = cmdAddServer`**, **`Caption = Add Server`** while in Design Mode. Its click event must live in the **Rack Lookup worksheet object**, together with `cmdClear_Click` and `cmdRefresh_Click`. The new Click handler calls `buttonAddServer.OpenAddServerForm`.
 
-See [ACTIVEX_CONTROLS_SETUP.md](ACTIVEX_CONTROLS_SETUP.md) for installing and styling all three ActiveX buttons, preserving the existing Worksheet_Change event, turning off Design Mode, and testing. ActiveX controls must be permitted by your organization's Office configuration.
+See [EIGHT_BUTTON_SETUP.md](EIGHT_BUTTON_SETUP.md) for the complete eight-button ActiveX layout. This document covers the Add Server form only; preserve the single worksheet `Worksheet_Change` event. ActiveX controls must be permitted by your organization's Office configuration.
 
 ## Behavior and safety
 
@@ -77,7 +77,7 @@ See [ACTIVEX_CONTROLS_SETUP.md](ACTIVEX_CONTROLS_SETUP.md) for installing and st
 - **Optional values:** Hostname, Serial Number, and Asset Tag may each be blank; if **all three** are blank, the form asks for confirmation. Text identifiers are stored as text, including leading zeros.
 - **On save:** appends exactly one `tblInventory` row, updates Rack Lookup C3 (rack) and C4 (bottom U), clears conflicting search inputs, recalculates the E3 results, redraws the rack, and highlights the new device. The form leaves other inventory columns untouched.
 - **On cancel or validation failure:** no inventory row is added. A write-time failure removes its newly created row.
-- **Not part of this version:** editing an existing server, deleting a server, creating racks, or recording network connections. Those can be added as separate workflows later.
+- **Separate workflows:** Edit Server and Decom Server now have their own forms and validation modules. This Add Server form remains responsible only for new records. Rack creation and network-connection tracking are not implemented.
 
 If ActiveX controls or UserForms are restricted by your organization's policy, stop and use the approved controls rather than changing Office security settings. Never upload real hostnames, serial numbers, or rack inventory to a public repository.
 
