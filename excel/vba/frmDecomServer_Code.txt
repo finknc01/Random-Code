@@ -1,0 +1,55 @@
+Option Explicit
+
+' Paste into a UserForm named frmDecomServer.
+Private mTarget As ListRow
+
+Private Sub UserForm_Initialize()
+    Me.Caption = "Decommission Server | RackScan"
+    Me.lblServer.Caption = ""
+    Me.lblMessage.Caption = ""
+    Me.cmdCancel.Cancel = True
+End Sub
+
+Public Sub LoadServer(ByVal target As ListRow)
+    Dim inventory As ListObject
+    Dim host As String, rack As String, unit As String, serial As String
+    Set mTarget = target
+    Set inventory = modRackData.GetTable("Server Inventory", "tblInventory")
+    host = modRackData.RowText(target, modRackData.ColumnIndex(inventory, "Hostname"))
+    rack = modRackData.RowText(target, modRackData.ColumnIndex(inventory, "Rack ID"))
+    unit = modRackData.RowText(target, modRackData.ColumnIndex(inventory, "U Position"))
+    serial = modRackData.RowText(target, modRackData.ColumnIndex(inventory, "Serial Number"))
+    Me.lblServer.Caption = "Hostname: " & host & vbCrLf & _
+                           "Serial: " & serial & vbCrLf & _
+                           "Location: " & rack & " / U" & unit
+End Sub
+
+Private Sub cmdConfirm_Click()
+    Dim result As String
+    On Error GoTo HandleError
+    If MsgBox("Archive this server and remove it from active inventory?", _
+              vbYesNo + vbExclamation + vbDefaultButton2, _
+              "Confirm Decommission") <> vbYes Then Exit Sub
+    Me.cmdConfirm.Enabled = False
+    If Not modServerActions.TryDecomServer(mTarget, _
+                modRackData.TextValue(Me.txtReason.Value), result) Then
+        Me.lblMessage.Caption = result
+        Me.cmdConfirm.Enabled = True
+        Exit Sub
+    End If
+    Unload Me
+    On Error GoTo RefreshError
+    buttonRefresh.RefreshRackLookupButton
+    MsgBox result, vbInformation, "Decommissioned"
+    Exit Sub
+RefreshError:
+    MsgBox result & vbCrLf & "Refresh failed: " & Err.Description, vbExclamation
+    Exit Sub
+HandleError:
+    Me.lblMessage.Caption = Err.Description
+    Me.cmdConfirm.Enabled = True
+End Sub
+
+Private Sub cmdCancel_Click()
+    Unload Me
+End Sub
