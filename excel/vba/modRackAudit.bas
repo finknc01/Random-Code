@@ -16,7 +16,7 @@ Public Sub PublishRackAudit(ByVal rackInput As String, _
     Dim rowNumber As Long, itemNumber As Long, bottomU As Long, heightU As Long
     Dim topU As Long, u As Long, rawHeight As String, serial As String
     Dim issues As String, scanStatus As String, key As Variant
-    Dim verified As Long, missing As Long, unscannable As Long
+    Dim verified As Long, missing As Long, unscannable As Long, ambiguous As Long
     Dim unknown As Long, badRecords As Long, expectedCount As Long
 
     On Error GoTo HandleError
@@ -128,6 +128,9 @@ Public Sub PublishRackAudit(ByVal rackInput As String, _
         If Len(serial) = 0 Then
             scanStatus = "NO SERIAL / UNVERIFIABLE"
             unscannable = unscannable + 1
+        ElseIf CLng(serials(serial)) > 1 Then
+            scanStatus = "DUPLICATE SERIAL / UNVERIFIABLE"
+            ambiguous = ambiguous + 1
         ElseIf scans.Exists(serial) Then
             scanStatus = "VERIFIED"
             verified = verified + 1
@@ -165,13 +168,15 @@ Public Sub PublishRackAudit(ByVal rackInput As String, _
     expectedCount = inventoryRows.Count
     ws.Range("A4").Value2 = "Expected: " & expectedCount & "  |  Verified: " & verified & _
                             "  |  Missing: " & missing & "  |  Unknown: " & unknown & _
-                            "  |  No serial: " & unscannable & "  |  Data issues: " & badRecords
+                            "  |  No serial: " & unscannable & "  |  Ambiguous: " & ambiguous & _
+                            "  |  Data issues: " & badRecords
     ws.Columns("A:F").AutoFit
     ws.Columns("J").Hidden = True
     ws.Activate
     ws.Range("A1").Select
     resultMessage = "Audit complete: " & verified & " verified, " & missing & _
-                    " missing, " & unknown & " unexpected, " & badRecords & " data issues."
+                    " missing, " & unknown & " unexpected, " & ambiguous & _
+                    " ambiguous, " & badRecords & " data issues."
     Exit Sub
 HandleError:
     resultMessage = "Audit failed (" & Err.Number & "): " & Err.Description
