@@ -1,5 +1,7 @@
 # Rack workbook regression test plan
 
+**Eight-button release:** Also follow [EIGHT_BUTTON_SETUP.md](EIGHT_BUTTON_SETUP.md), section 7, for Edit Server, Decom Server, physical Rack Audit, Print Search, and Print Racks. The original Add/Clear/Refresh checks below remain relevant.
+
 Run on a **backup copy** of the Excel workbook after installing all five standard modules, all three worksheet events, and the updated E3 formula. All data used below should be fictitious; keep real inventory out of the public repository.
 
 ## Build and setup
