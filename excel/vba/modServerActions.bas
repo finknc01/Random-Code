@@ -112,6 +112,8 @@ Public Function TryEditServer(ByVal target As ListRow, _
     Dim inv As ListObject, canonical As String, reason As String
     Dim capacity As Long, bottomU As Long, heightU As Long
     Dim col(1 To 6) As Long, oldValue(1 To 6) As Variant
+    Dim oldFormat(1 To 6) As String, oldFormula(1 To 6) As String
+    Dim hadFormula(1 To 6) As Boolean
     Dim i As Long, priorEvents As Boolean, writing As Boolean
     Dim errorNumber As Long, errorText As String
 
@@ -161,7 +163,12 @@ Public Function TryEditServer(ByVal target As ListRow, _
     col(5) = modRackData.ColumnIndex(inv, "Serial Number")
     col(6) = modRackData.ColumnIndex(inv, "Asset Tag")
     For i = 1 To 6
-        oldValue(i) = target.Range.Cells(1, col(i)).Value2
+        With target.Range.Cells(1, col(i))
+            oldValue(i) = .Value2
+            oldFormat(i) = .NumberFormat
+            hadFormula(i) = .HasFormula
+            If hadFormula(i) Then oldFormula(i) = .Formula2
+        End With
     Next i
 
     priorEvents = Application.EnableEvents
@@ -173,8 +180,8 @@ Public Function TryEditServer(ByVal target As ListRow, _
     SetText target.Range.Cells(1, col(4)), hostname
     SetText target.Range.Cells(1, col(5)), serialNumber
     SetText target.Range.Cells(1, col(6)), assetTag
-    writing = False
     Application.EnableEvents = priorEvents
+    writing = False
 
     TryEditServer = True
     message = "Server updated in " & canonical & " at U" & bottomU & "."
@@ -186,7 +193,14 @@ HandleError:
     On Error Resume Next
     If writing Then
         For i = 1 To 6
-            target.Range.Cells(1, col(i)).Value2 = oldValue(i)
+            With target.Range.Cells(1, col(i))
+                .NumberFormat = oldFormat(i)
+                If hadFormula(i) Then
+                    .Formula2 = oldFormula(i)
+                Else
+                    .Value2 = oldValue(i)
+                End If
+            End With
         Next i
         Application.EnableEvents = priorEvents
     End If
