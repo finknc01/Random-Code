@@ -54,6 +54,19 @@ Run on a **backup copy** of the Excel workbook after installing the shared and w
 - [ ] Existing inventory rows and unrelated table columns remain intact. Save an invalid U, nonnumeric height, or overlapping placement and confirm row count is unchanged.
 - [ ] Test on a backup workbook with an empty table, a full-height rack, and a shorter rack. Verify the form never silently creates an unregistered rack.
 
+## Edit, Decom, Audit and print workflows
+
+- [ ] Edit a unique fictitious server. Confirm fields load correctly; move a 2U server from bottom U40 to a free U and verify both rack positions refresh.
+- [ ] An edit that overlaps another device or exceeds the rack height is rejected with **no partial changes**. Also check the source row's formats survive any simulated write failure.
+- [ ] Search a nonunique hostname or serial. Edit and Decom must refuse ambiguity rather than selecting the first matching row.
+- [ ] Decom requires confirmation, writes **every** source inventory column to `tblDecom` with `Decom Date` / `Decom Reason`, then removes just that source row. Cancel leaves both tables unchanged.
+- [ ] A pre-existing `Decommissioned Servers` worksheet without a compatible `tblDecom` must block decommission; no inventory row is removed.
+- [ ] Audit one rack with a missing serial, unexpected scanned serial, duplicate inventory serial, blank serial, U overlap, and invalid height. Duplicate inventory serials must be marked **unverifiable**, not double-counted as verified.
+- [ ] Audit produces `Rack Audit Report` without modifying `tblInventory`. A pre-existing unrelated sheet named `Rack Audit Report` must not be cleared.
+- [ ] Type a fictitious hostname/serial beginning with `=1+1` as literal text. Verify it remains visible as **text**, not an evaluated formula, in the elevation and audit report.
+- [ ] Print Search previews E2:I search results, excludes `No matching servers` and empty searches, and includes the current criteria. Print Racks previews only the selected rack panel on one page.
+- [ ] Cancel both print previews. Verify all prior `PageSetup` values and search inputs are restored.
+
 ## Equipment positions / validation
 
 - [ ] A 2U server with bottom U40 occupies U40 and U41 as one visually merged block in L:M; K still shows separate U41 and U40 markers. C4 = U40 highlights both slots; C4 = U41 does not match that server. The hostname and serial appear once, not once per U.
