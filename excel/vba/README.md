@@ -1,10 +1,10 @@
 # Server rack inventory — VBA installation and maintenance
 
-This project contains the Rack Lookup, Server Inventory, and Rack Info worksheets; shared VBA modules; **eight ActiveX buttons**; Add/Edit/Decom/Audit UserForms; worksheet events; and a dynamic lookup formula.
+This project starts with the Rack Lookup, Server Inventory, and Rack Info worksheets; shared VBA modules; **eight ActiveX buttons**; Add/Edit/Decom/Audit UserForms; worksheet events; and a dynamic lookup formula. The archive and audit-report sheets are created by their workflows.
 
 ## Installation — desktop Excel
 
-1. **Make a backup** of the working `.xlsm` file before replacing code.
+1. **Make a backup** of the working `.xlsm` file before replacing code. For all eight buttons, start with the complete [EIGHT_BUTTON_SETUP.md](EIGHT_BUTTON_SETUP.md); the instructions below also document the original shared modules.
 2. Open **Alt+F11** (Visual Basic Editor).
 3. Under **Modules**, add or replace the **entire contents** of these five standard modules:
    - [modRackData.bas](modRackData.bas) — shared limits, table guards, text/U parsing (**NEW REQUIRED MODULE**).
