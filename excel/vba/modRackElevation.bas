@@ -48,6 +48,9 @@ Public Sub RenderRackElevation()
         .Font.Bold = False
         .Borders.LineStyle = xlNone
     End With
+    ' The display contains user-supplied hostnames and serials. Treat them as
+    ' literal text even if an identifier begins with an Excel formula prefix.
+    ws.Range("L2:M126").NumberFormat = "@"
     ws.Columns("K").ColumnWidth = 9
     ws.Columns("L").ColumnWidth = 28
     ws.Columns("M").ColumnWidth = 23
