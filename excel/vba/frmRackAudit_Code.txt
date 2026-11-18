@@ -57,6 +57,7 @@ End Sub
 
 Private Sub cmdFinish_Click()
     Dim result As String
+    Dim succeeded As Boolean
     On Error GoTo HandleError
     If Len(modRackData.TextValue(Me.cboRack.Value)) = 0 Then
         Me.lblMessage.Caption = "Select a rack."
@@ -67,8 +68,9 @@ Private Sub cmdFinish_Click()
                   vbQuestion + vbYesNo + vbDefaultButton2) <> vbYes Then Exit Sub
     End If
     Me.cmdFinish.Enabled = False
-    modRackAudit.PublishRackAudit modRackData.TextValue(Me.cboRack.Value), mScans, result
-    If Left$(result, 15) = "Audit complete:" Then
+    succeeded = modRackAudit.PublishRackAudit( _
+        modRackData.TextValue(Me.cboRack.Value), mScans, result)
+    If succeeded Then
         Unload Me
         MsgBox result, vbInformation, "Rack Audit"
     Else
