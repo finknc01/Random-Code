@@ -1,0 +1,86 @@
+Option Explicit
+
+' Paste into a UserForm named frmRackAudit.
+' Scanners that send Enter automatically submit each serial number.
+Private mScans As Object
+
+Private Sub UserForm_Initialize()
+    Dim rackIds As Collection, item As Variant, suggestion As String
+    Set mScans = CreateObject("Scripting.Dictionary")
+    mScans.CompareMode = vbTextCompare
+    Me.Caption = "Audit Racks | RackScan"
+    Me.cboRack.Style = fmStyleDropDownList
+    Me.lblMessage.Caption = "Scan each physical server's serial number."
+    Me.cmdCancel.Cancel = True
+    Set rackIds = modServerEntry.RegisteredRackIds()
+    For Each item In rackIds
+        Me.cboRack.AddItem CStr(item)
+    Next item
+    suggestion = modServerEntry.SuggestedRackId()
+    If Len(suggestion) > 0 Then Me.cboRack.Value = suggestion
+End Sub
+
+Private Sub cboRack_Change()
+    mScans.RemoveAll
+    Me.lstScans.Clear
+    Me.lblMessage.Caption = "Rack changed. Previous scans discarded."
+End Sub
+
+Private Sub txtScan_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If KeyCode = 13 Then
+        KeyCode = 0
+        AddScannedSerial
+    End If
+End Sub
+
+Private Sub cmdAddScan_Click()
+    AddScannedSerial
+End Sub
+
+Private Sub AddScannedSerial()
+    Dim scan As String
+    scan = modRackData.TextValue(Me.txtScan.Value)
+    If Len(modRackData.TextValue(Me.cboRack.Value)) = 0 Then
+        Me.lblMessage.Caption = "Choose a rack before scanning."
+    ElseIf Len(scan) = 0 Then
+        Me.lblMessage.Caption = "Scan or enter a serial number."
+    ElseIf mScans.Exists(scan) Then
+        Me.lblMessage.Caption = "Already scanned: " & scan
+    Else
+        mScans.Add scan, True
+        Me.lstScans.AddItem scan
+        Me.lblMessage.Caption = mScans.Count & " unique serials scanned."
+    End If
+    Me.txtScan.Value = ""
+    Me.txtScan.SetFocus
+End Sub
+
+Private Sub cmdFinish_Click()
+    Dim result As String
+    On Error GoTo HandleError
+    If Len(modRackData.TextValue(Me.cboRack.Value)) = 0 Then
+        Me.lblMessage.Caption = "Select a rack."
+        Exit Sub
+    End If
+    If mScans.Count = 0 Then
+        If MsgBox("No serials scanned. Produce a missing-server report?", _
+                  vbQuestion + vbYesNo + vbDefaultButton2) <> vbYes Then Exit Sub
+    End If
+    Me.cmdFinish.Enabled = False
+    modRackAudit.PublishRackAudit modRackData.TextValue(Me.cboRack.Value), mScans, result
+    If Left$(result, 15) = "Audit complete:" Then
+        Unload Me
+        MsgBox result, vbInformation, "Rack Audit"
+    Else
+        Me.lblMessage.Caption = result
+        Me.cmdFinish.Enabled = True
+    End If
+    Exit Sub
+HandleError:
+    Me.lblMessage.Caption = Err.Description
+    Me.cmdFinish.Enabled = True
+End Sub
+
+Private Sub cmdCancel_Click()
+    Unload Me
+End Sub
