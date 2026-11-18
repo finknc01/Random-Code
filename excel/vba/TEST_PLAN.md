@@ -2,7 +2,7 @@
 
 **Eight-button release:** Also follow [EIGHT_BUTTON_SETUP.md](EIGHT_BUTTON_SETUP.md), section 7, for Edit Server, Decom Server, physical Rack Audit, Print Search, and Print Racks. The original Add/Clear/Refresh checks below remain relevant.
 
-Run on a **backup copy** of the Excel workbook after installing all five standard modules, all three worksheet events, and the updated E3 formula. All data used below should be fictitious; keep real inventory out of the public repository.
+Run on a **backup copy** of the Excel workbook after installing the shared and workflow VBA modules, three worksheet events, all eight ActiveX controls, and the updated E3 formula. All data used below should be fictitious; keep real inventory out of the public repository.
 
 ## Build and setup
 
@@ -15,11 +15,11 @@ Run on a **backup copy** of the Excel workbook after installing all five standar
 ## ActiveX controls and compatibility
 
 - [ ] Confirm the organization's Excel configuration permits ActiveX controls. If controls are disabled, **stop** and follow the approved IT policy; do not change Trust Center settings.
-- [ ] Add exactly three ActiveX CommandButtons on Rack Lookup with names `cmdClear`, `cmdRefresh`, `cmdAddServer`. Design Mode must be OFF when testing clicks.
+- [ ] Add exactly eight ActiveX CommandButtons on Rack Lookup: `cmdAddServer`, `cmdEditServer`, `cmdDecomServer`, `cmdClear`, `cmdRefresh`, `cmdAuditRacks`, `cmdPrintSearch`, `cmdPrintRacks`. Design Mode must be OFF when testing clicks.
 - [ ] `RackLookup_SheetCode.txt` handlers are pasted into **Sheet (Rack Lookup)**, not a standard module; exactly one `Worksheet_Change` remains.
 - [ ] Buttons have consistent font/size, distinct BackColor, readable ForeColor, and visible press feedback; `TakeFocusOnClick` and `TabStop` are False.
 - [ ] After testing the new controls, old Form Control buttons can be removed manually; the old `button*.bas` entry points remain intact.
-- [ ] Close and reopen the backup workbook; all three controls still initialize and operate normally.
+- [ ] Close and reopen the backup workbook; all eight controls and their UserForms still initialize and operate normally.
 
 ## Search and display
 
