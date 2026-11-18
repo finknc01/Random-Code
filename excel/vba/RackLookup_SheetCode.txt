@@ -1,6 +1,5 @@
-' Rack Lookup sheet object: retain Worksheet_Change and handle ActiveX buttons.
-' Control names on the worksheet: cmdClear, cmdRefresh, cmdAddServer.
-' Paste into Microsoft Excel Objects > Sheet (Rack Lookup), NOT a standard module.
+' Rack Lookup sheet object: ONE Worksheet_Change and EIGHT ActiveX Click events.
+' Paste into Microsoft Excel Objects > Sheet (Rack Lookup), not a standard module.
 Option Explicit
 
 Private Sub Worksheet_Change(ByVal Target As Range)
@@ -17,8 +16,17 @@ HandleError:
            Err.Description, vbExclamation
 End Sub
 
-' These Click events run from the ActiveX CommandButtons on Rack Lookup.
-' Existing button modules remain the reusable entry points.
+Private Sub cmdAddServer_Click()
+    buttonAddServer.OpenAddServerForm
+End Sub
+
+Private Sub cmdEditServer_Click()
+    buttonEditServer.OpenEditServerForm
+End Sub
+
+Private Sub cmdDecomServer_Click()
+    buttonDecomServer.OpenDecomServerForm
+End Sub
 
 Private Sub cmdClear_Click()
     buttonClear.ClearRackLookupButton
@@ -28,6 +36,14 @@ Private Sub cmdRefresh_Click()
     buttonRefresh.RefreshRackLookupButton
 End Sub
 
-Private Sub cmdAddServer_Click()
-    buttonAddServer.OpenAddServerForm
+Private Sub cmdAuditRacks_Click()
+    buttonAuditRacks.OpenAuditRacksForm
+End Sub
+
+Private Sub cmdPrintSearch_Click()
+    buttonPrintSearch.PrintSearchButton
+End Sub
+
+Private Sub cmdPrintRacks_Click()
+    buttonPrintRacks.PrintRacksButton
 End Sub
