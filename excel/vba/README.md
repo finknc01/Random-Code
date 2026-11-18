@@ -1,6 +1,6 @@
 # Server rack inventory — VBA installation and maintenance
 
-This project consists of three Excel worksheets, five core standard VBA modules, three button entry-point modules, one optional Add Server UserForm, three worksheet events, and one dynamic lookup formula.
+This project contains the Rack Lookup, Server Inventory, and Rack Info worksheets; shared VBA modules; **eight ActiveX buttons**; Add/Edit/Decom/Audit UserForms; worksheet events; and a dynamic lookup formula.
 
 ## Installation — desktop Excel
 
@@ -12,7 +12,7 @@ This project consists of three Excel worksheets, five core standard VBA modules,
    - [modRackRegistry.bas](modRackRegistry.bas) — automatic registration and manual rack audits.
    - [modRackElevation.bas](modRackElevation.bas) — renders 1–42U elevation.
    - [modServerEntry.bas](modServerEntry.bas) — validates and appends a server, including multi-U collision detection (**REQUIRED FOR ADD SERVER**).
-   For the three Rack Lookup ActiveX buttons, also use these standard modules named exactly as shown:
+   For the original Add/Clear/Refresh ActiveX buttons, retain these standard modules:
    - [buttonClear.bas](buttonClear.bas) → module **buttonClear**, public macro **ClearRackLookupButton**.
    - [buttonRefresh.bas](buttonRefresh.bas) → module **buttonRefresh**, public macro **RefreshRackLookupButton**.
    - [buttonAddServer.bas](buttonAddServer.bas) → module **buttonAddServer**, public macro **OpenAddServerForm** (**requires `frmAddServer` UserForm**).
@@ -25,7 +25,17 @@ This project consists of three Excel worksheets, five core standard VBA modules,
 6. In **Rack Lookup!E3**, use the **full** dynamic formula from [server-rack-lookup-formula.md](../server-rack-lookup-formula.md). Keep the spill destination E3:I free. It cannot be placed inside a Table.
 7. Run **Debug > Compile VBAProject**, then save and reopen if appropriate. Ensure VBA editor error trapping is **Break on Unhandled Errors**.
 8. Run `SyncRackRegistry` once from **Alt+F8** to register rack IDs that were present before worksheet events were installed; then run `ValidateRackRegistry` once to check duplicates and bad heights.
-9. On **Rack Lookup**, insert three **ActiveX CommandButtons** named **`cmdClear`**, **`cmdRefresh`**, and **`cmdAddServer`**. They use the Click procedures in `RackLookup_SheetCode.txt`; **do not use Assign Macro**. Follow [ACTIVEX_CONTROLS_SETUP.md](ACTIVEX_CONTROLS_SETUP.md) for control names, styling, and testing. The Add Server form fields are in [ADD_SERVER_FORM_SETUP.md](ADD_SERVER_FORM_SETUP.md).
+9. On **Rack Lookup**, install the **eight ActiveX CommandButtons** and their Click handlers per [EIGHT_BUTTON_SETUP.md](EIGHT_BUTTON_SETUP.md) and [ACTIVEX_CONTROLS_SETUP.md](ACTIVEX_CONTROLS_SETUP.md). Do not use Assign Macro. Preserve the existing `Worksheet_Change` logic and any unrelated workbook events.
+
+## Eight-button workflows
+
+The latest additions implement **Edit Server**, **Decom Server**, **Audit Racks**, **Print Search** and **Print Racks**, alongside the established Add Server / Clear Search / Refresh buttons.
+
+- [EIGHT_BUTTON_SETUP.md](EIGHT_BUTTON_SETUP.md) is the authoritative installation guide for all eight buttons, including the new standard modules `modServerActions`, `modRackAudit`, `modRackPrinting`, the `frmEditServer`, `frmDecomServer`, `frmRackAudit` forms, and the archive/audit table layouts.
+- The new `RackLookup_SheetCode.txt` contains all eight worksheet Click events. Do not merge in duplicate `Worksheet_Change` procedures.
+- **Decom Server** archives the complete inventory row in a `tblDecom` table on the `Decommissioned Servers` sheet before deleting the active row. An incompatible existing archive blocks the action.
+- **Audit Racks** collects physical serial scans and creates a separate report with physical misses, unexpected scans and inventory-data warnings. It does not edit inventory.
+- Both Print buttons open Print Preview rather than sending unattended print jobs.
 
 ## ActiveX compatibility
 
