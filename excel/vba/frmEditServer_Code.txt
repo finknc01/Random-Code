@@ -1,0 +1,112 @@
+Option Explicit
+
+' Paste into a UserForm named frmEditServer. Control names are in EIGHT_BUTTON_SETUP.md.
+Private mTarget As ListRow
+Private mRackCapacity As Long
+
+Private Sub UserForm_Initialize()
+    Dim rackIds As Collection, item As Variant
+    Me.Caption = "Edit Server | RackScan"
+    Me.cboRack.Style = fmStyleDropDownList
+    Me.cmdSave.Default = True
+    Me.cmdCancel.Cancel = True
+    Me.lblMessage.Caption = ""
+    Set rackIds = modServerEntry.RegisteredRackIds()
+    For Each item In rackIds
+        Me.cboRack.AddItem CStr(item)
+    Next item
+End Sub
+
+Public Sub LoadServer(ByVal target As ListRow)
+    Dim inv As ListObject
+    Dim rawHeight As String
+    Dim oldRack As String, canonical As String, issue As String
+    Set mTarget = target
+    Set inv = modRackData.GetTable("Server Inventory", "tblInventory")
+    oldRack = modRackData.RowText(target, modRackData.ColumnIndex(inv, "Rack ID"))
+    If modServerEntry.RackCapacity(oldRack, canonical, issue) > 0 Then
+        Me.cboRack.Value = canonical
+    Else
+        Me.lblMessage.Caption = "Original rack is invalid: " & issue & _
+                                ". Choose a registered rack before saving."
+    End If
+    Me.txtUPosition.Value = modRackData.RowText(target, modRackData.ColumnIndex(inv, "U Position"))
+    rawHeight = modRackData.RowText(target, modRackData.ColumnIndex(inv, "Height (U)"))
+    If Len(rawHeight) = 0 Then rawHeight = "1"
+    Me.txtHeightU.Value = rawHeight
+    Me.txtHostname.Value = modRackData.RowText(target, modRackData.ColumnIndex(inv, "Hostname"))
+    Me.txtSerial.Value = modRackData.RowText(target, modRackData.ColumnIndex(inv, "Serial Number"))
+    Me.txtAssetTag.Value = modRackData.RowText(target, modRackData.ColumnIndex(inv, "Asset Tag"))
+    Me.lblTarget.Caption = "Editing inventory row " & target.Range.Row
+    UpdatePlacement
+End Sub
+
+Private Sub cboRack_Change()
+    UpdatePlacement
+End Sub
+
+Private Sub txtUPosition_Change()
+    UpdatePlacement
+End Sub
+
+Private Sub txtHeightU_Change()
+    UpdatePlacement
+End Sub
+
+Private Sub UpdatePlacement()
+    Dim canonical As String, issue As String
+    Dim bottomU As Long, heightU As Long
+    On Error GoTo HandleError
+    mRackCapacity = modServerEntry.RackCapacity( _
+        modRackData.TextValue(Me.cboRack.Value), canonical, issue)
+    If mRackCapacity = 0 Then
+        Me.lblPlacement.Caption = issue
+        Exit Sub
+    End If
+    bottomU = modRackData.ParseU(modRackData.TextValue(Me.txtUPosition.Value))
+    heightU = modRackData.ParseU(modRackData.TextValue(Me.txtHeightU.Value), False)
+    If bottomU = 0 Or heightU = 0 Then
+        Me.lblPlacement.Caption = "Enter bottom U and server height (1-42)."
+    ElseIf bottomU + heightU - 1 > mRackCapacity Then
+        Me.lblPlacement.Caption = "Out of range: top U exceeds U" & mRackCapacity
+    Else
+        Me.lblPlacement.Caption = "Occupies U" & bottomU & "-U" & (bottomU + heightU - 1)
+    End If
+    Exit Sub
+HandleError:
+    Me.lblPlacement.Caption = Err.Description
+End Sub
+
+Private Sub cmdSave_Click()
+    Dim message As String, rackId As String, bottomU As Long
+    On Error GoTo HandleError
+    Me.cmdSave.Enabled = False
+    If Not modServerActions.TryEditServer( _
+        mTarget, modRackData.TextValue(Me.cboRack.Value), _
+        modRackData.TextValue(Me.txtUPosition.Value), _
+        modRackData.TextValue(Me.txtHeightU.Value), _
+        modRackData.TextValue(Me.txtHostname.Value), _
+        modRackData.TextValue(Me.txtSerial.Value), _
+        modRackData.TextValue(Me.txtAssetTag.Value), message) Then
+        Me.lblMessage.Caption = message
+        Me.cmdSave.Enabled = True
+        Exit Sub
+    End If
+    rackId = modRackData.TextValue(Me.cboRack.Value)
+    bottomU = modRackData.ParseU(modRackData.TextValue(Me.txtUPosition.Value))
+    Unload Me
+    On Error GoTo RefreshError
+    modServerEntry.ShowAddedServer rackId, bottomU
+    MsgBox message, vbInformation, "Server Updated"
+    Exit Sub
+RefreshError:
+    MsgBox message & vbCrLf & "Lookup refresh failed: " & Err.Description, vbExclamation
+    Exit Sub
+HandleError:
+    Me.lblMessage.Caption = Err.Description
+    Me.cmdSave.Enabled = True
+End Sub
+
+Private Sub cmdCancel_Click()
+    Unload Me
+End Sub
