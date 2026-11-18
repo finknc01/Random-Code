@@ -4,9 +4,9 @@ Option Explicit
 ' invalid U positions, heights, duplicate serials and occupied-U collisions.
 ' Audit output never updates or deletes live inventory records.
 
-Public Sub PublishRackAudit(ByVal rackInput As String, _
-                            ByVal scans As Object, _
-                            ByRef resultMessage As String)
+Public Function PublishRackAudit(ByVal rackInput As String, _
+                                 ByVal scans As Object, _
+                                 ByRef resultMessage As String) As Boolean
     Dim inventory As ListObject, item As ListRow, ws As Worksheet
     Dim canonical As String, reason As String, capacity As Long
     Dim rackCol As Long, uCol As Long, heightCol As Long
@@ -23,12 +23,12 @@ Public Sub PublishRackAudit(ByVal rackInput As String, _
     resultMessage = ""
     If scans Is Nothing Then
         resultMessage = "The scan collection has not been initialized."
-        Exit Sub
+        Exit Function
     End If
     capacity = modServerEntry.RackCapacity(rackInput, canonical, reason)
     If capacity = 0 Then
         resultMessage = reason
-        Exit Sub
+        Exit Function
     End If
 
     Set inventory = modRackData.GetTable("Server Inventory", "tblInventory")
@@ -143,6 +143,7 @@ Public Sub PublishRackAudit(ByVal rackInput As String, _
         End If
 
         ws.Cells(rowNumber, 1).NumberFormat = "@"
+        ws.Range("B" & rowNumber & ":D" & rowNumber).NumberFormat = "@"
         ws.Cells(rowNumber, 1).Value2 = serial
         ws.Cells(rowNumber, 2).Value2 = modRackData.RowText(item, hostCol)
         ws.Cells(rowNumber, 3).Value2 = modRackData.RowText(item, uCol)
@@ -180,10 +181,11 @@ Public Sub PublishRackAudit(ByVal rackInput As String, _
     resultMessage = "Audit complete: " & verified & " verified, " & missing & _
                     " missing, " & unknown & " unexpected, " & ambiguous & _
                     " ambiguous, " & badRecords & " data issues."
-    Exit Sub
+    PublishRackAudit = True
+    Exit Function
 HandleError:
     resultMessage = "Audit failed (" & Err.Number & "): " & Err.Description
-End Sub
+End Function
 
 Private Function ServerHeight(ByVal item As ListRow, ByVal heightColumn As Long) As Long
     Dim value As String
