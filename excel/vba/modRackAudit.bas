@@ -79,6 +79,9 @@ Public Sub PublishRackAudit(ByVal rackInput As String, _
     ws.Range("B2").Value = Now
     ws.Range("B2").NumberFormat = "mm/dd/yyyy hh:mm"
     ws.Range("A3").Value2 = "Rack capacity: " & capacity & "U"
+    ws.Range("A4:F4").Merge
+    ws.Range("A4:F4").WrapText = True
+    ws.Rows(4).RowHeight = 30
     ws.Range("A5").Value2 = "Serial Number"
     ws.Range("B5").Value2 = "Hostname"
     ws.Range("C5").Value2 = "Bottom U"
